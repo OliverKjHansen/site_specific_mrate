@@ -27,8 +27,7 @@ The following project is structered as suggested in the snakemake documentation:
 │   ├── config.yaml
 │   └── some-sheet.tsv
 ├── results
-└── resources
-
+└── resources -->
 .
 ├── config
 │   └── config.yaml
