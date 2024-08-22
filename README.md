@@ -3,7 +3,8 @@ We present a model that has  an improved mutation prediction, which we can use i
 
 The following project is structered as suggested in the snakemake documentation: "https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html"
 
-<!-- ├── .gitignore
+```bash
+├── .gitignore
 ├── README.md
 ├── LICENSE.md
 ├── workflow
@@ -27,17 +28,19 @@ The following project is structered as suggested in the snakemake documentation:
 │   ├── config.yaml
 │   └── some-sheet.tsv
 ├── results
-└── resources -->
-.
-├── config
-│   └── config.yaml
-├── LICENSE
-├── README.md
-├── resources
-├── results
-└── workflow
-    ├── envs
-    ├── plots
-    ├── rules
-    ├── scripts
-    └── snakefile.smk
+└── resources
+```
+
+# .
+# ├── config
+# │   └── config.yaml
+# ├── LICENSE
+# ├── README.md
+# ├── resources
+# ├── results
+# └── workflow
+#     ├── envs
+#     ├── plots
+#     ├── rules
+#     ├── scripts
+#     └── snakefile.smk
