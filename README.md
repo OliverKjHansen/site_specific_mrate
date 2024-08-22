@@ -3,44 +3,23 @@ We present a model that has  an improved mutation prediction, which we can use i
 
 The following project is structered as suggested in the snakemake documentation: "https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html"
 
-```bash
-├── .gitignore
-├── README.md
-├── LICENSE.md
-├── workflow
-│   ├── rules
-|   │   ├── module1.smk
-|   │   └── module2.smk
-│   ├── envs
-|   │   ├── tool1.yaml
-|   │   └── tool2.yaml
-│   ├── scripts
-|   │   ├── script1.py
-|   │   └── script2.R
-│   ├── notebooks
-|   │   ├── notebook1.py.ipynb
-|   │   └── notebook2.r.ipynb
-│   ├── report
-|   │   ├── plot1.rst
-|   │   └── plot2.rst
-|   └── Snakefile
-├── config
-│   ├── config.yaml
-│   └── some-sheet.tsv
-├── results
-└── resources
-```
+tree -r -L 3
 
-# .
-# ├── config
-# │   └── config.yaml
-# ├── LICENSE
-# ├── README.md
-# ├── resources
-# ├── results
-# └── workflow
-#     ├── envs
-#     ├── plots
-#     ├── rules
-#     ├── scripts
-#     └── snakefile.smk
+```bash
+.
+├── workflow
+│   ├── snakefile.smk
+│   ├── scripts
+│   ├── rules
+│   │   ├── haploinsufficiency.smk
+│   │   └── comparing.smk
+│   ├── plots
+│   └── envs
+├── resources
+├── README.md
+├── output
+│   └── int
+├── LICENSE
+└── config
+    └── config.yaml
+```

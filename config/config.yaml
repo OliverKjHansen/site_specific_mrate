@@ -1,0 +1,8 @@
+snp_type: ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T"]
+
+indel_type: ["insertions", "deletion"]
+#for haploinsufficiency
+
+
+#for compareing different models
+models: ["kmer", "genomic","complex"] # have to find another name for the full/complex model
