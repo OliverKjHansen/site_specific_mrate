@@ -3,15 +3,16 @@ We present a model that has  an improved mutation prediction, which we can use i
 
 The following project is structered as suggested in the snakemake documentation: "https://snakemake.readthedocs.io/en/stable/snakefiles/deployment.html"
 
-tree -r -L 3
+#tree -r -L 3
+#add comment to the tree levels 
 
 ```bash
 .
 ├── workflow
-│   ├── snakefile.smk
+│   ├── snakefile.smk 
 │   ├── scripts
 │   ├── rules
-│   │   ├── haploinsufficiency.smk
+│   │   ├── haploinsufficiency.smk 
 │   │   └── comparing.smk
 │   ├── plots
 │   └── envs
