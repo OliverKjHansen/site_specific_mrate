@@ -1,16 +1,15 @@
 #!/usr/bin/env Rscript
-library(tidyverse)
-library(lmerTest)
-library(stringi)
-library(glmnet)
+library("tidyverse")
+library("glmnet")
+
 #set.seed(14)
-"""
-This scripts trains a logistic regression model on snp data
+# """
+# This scripts trains a logistic regression model on snp data
 
-As input it takes a file with mutations and path to output
+# As input it takes a file with mutations and path to output
 
-It creates a logistic regression model and a sperate file with the levelorder of the variables.
-"""
+# It creates a logistic regression model and a sperate file with the levelorder of the variables.
+# """
 # inputfiles
 args = commandArgs(trailingOnly=TRUE)
 #filelists <- list(args[1])
@@ -25,8 +24,7 @@ if (length(args)==0) {
 }
 
 
-df <- read_table(file = "data/subsample.txt") %>% mutate(ref=substr(context,(nchar(context)+1)/2,(nchar(context)+1)/2))
-
+df <- read_table(file = file) %>% mutate(ref=substr(context,(nchar(context)+1)/2,(nchar(context)+1)/2))
 
 ##finding the reference and alternative allelse from the data
 REF_allel <- unique(df$ref)
@@ -73,36 +71,24 @@ reference_context <- df %>%
 #levelsval <- relevel(factor(df$context),reference_context)
 #chaning refernce context
 levelsval <- df$context %>% factor() %>% relevel(reference_context)
-levelsfile <- paste0(output_path,REF_allel,2,ALT_allel,"_levels.RData")
+df$context <- df$context %>% factor() %>% relevel(reference_context)
+levelsfile <- paste0("../output/levels/",REF_allel,2,ALT_allel,"_levels.RData") ###change
 save(levelsval, file = levelsfile)
 
+
+## lets try to make two models. one where number of dummy variables are k and one where it is k-1. basically do we choose to fit the intercept or not?
 y<-df$mut
 #x<-data.matrix(df[,c('context','repli','GC_1k','recomb_decode','meth','CpG_I','CpG')])
-# x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I - 1, df) used to have a -1 to remove intercept 
-x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df)
-# im not sure what happens to the refernce level when i remove the intercept, but i have to because glmner makes it won intercept read documentation
+x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I, df) # with intercept
+x_no_intercept <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df) # no intercepts
 
 
-#grid <- exp(seq(-10.5,-5.5,length=250)) #lambda search space
-# C2T keeps on crashing   with my own grid         
-#cv.fit <-cv.glmnet(x,y,alpha=1,family='binomial', type.measure = 'deviance', lambda = grid, maxit = 100000) #execute lasso regression
+cv.fit <-cv.glmnet(x,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 10000)
+cv.fit_no_intercept <-cv.glmnet(x_no_intercept,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 10000) 
 
-cv.fit <-cv.glmnet(x,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 1000) # change to 10000 on the cluster
+filename <- paste0("../output/models/",REF_allel,2,ALT_allel,"_LassoBestModel.RData") ###change
+save(cv.fit, file = filename) #saving model as an R-object
 
-#best_model <- cv.fit
+filename_no_intercept <- paste0("../output/models/",REF_allel,2,ALT_allel,"_no_intercept_LassoBestModel.RData") ###change
+save(cv.fit_no_intercept, file = filename_no_intercept) #saving model as an R-object
 
-print(cv.fit$lambda.min)
-print(cv.fit$lambda.1se)
-print(coef(cv.fit, s = "lambda.min"))
-print(coef(cv.fit, s = "lambda.1se"))
-
-plot(cv.fit)
-
-filename <- paste0(output_path,REF_allel,2,ALT_allel,"_LassoBestModel.RData")
-save(best_model, file = filename) #saving model as an R-object
-
-## these are not necerasary 
-#d[c("T")][is.na(d[c("T")])] <- 0
-#d[c("A")][is.na(d[c("A")])] <- 0
-#d[c("C")][is.na(d[c("C")])] <- 0
-#d[c("G")][is.na(d[c("G")])] <- 0

@@ -3,6 +3,14 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+
+
+output/*
+workflow/plots/*
+workflow/logs
+workflow/.snakemake
+
+
 # User-specific files
 *.rsuser
 *.suo
@@ -12,6 +20,7 @@
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
+
 
 # Mono auto generated files
 mono_crash.*
