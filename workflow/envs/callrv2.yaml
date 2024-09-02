@@ -1,0 +1,7 @@
+name: callrv2
+channels:
+  - conda-forge
+dependencies: 
+  - r-callr
+  - r-tidyverse
+  - r-glmnet
