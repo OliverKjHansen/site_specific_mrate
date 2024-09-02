@@ -1,8 +1,21 @@
-snp_type: ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T"]
 
-indel_type: ["insertions", "deletion"]
+type : ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
+#path to diferent mutation files
+mutation_files: {A2C: "../../MakeLogRegInput/annotated_datasets/combined6/A2C_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
+A2G: "../../MakeLogRegInput/annotated_datasets/combined6/A2G_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
+A2T: "../../MakeLogRegInput/annotated_datasets/combined6/A2T_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
+C2A: "../../MakeLogRegInput/annotated_datasets/combined6/C2A_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz", 
+C2G: "../../MakeLogRegInput/annotated_datasets/combined6/C2G_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
+C2T: "../../MakeLogRegInput/annotated_datasets/combined6/C2T_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
+insertion: "../../MakeLogRegInput/annotated_datasets/combined6/insertion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz",
+deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz"
+}
+
+#model_fit: ["no_intercept", "classic"]
+
+
 #for haploinsufficiency
-
+#
 
 #for compareing different models
 models: ["kmer", "genomic","complex"] # have to find another name for the full/complex model
