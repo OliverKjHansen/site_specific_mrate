@@ -1,8 +1,9 @@
 configfile: "../config/config.yaml"
 
-mutationtype = config["type"]
+mutationtypes = config["type"]
 paths = config["mutation_files"]
-logmodel = config["log_model"]
+logmodels = config["log_model"] # intercept or no_intercept(nobeta)
+models = config["models"]
 
 
 #FILE = glob_wildcards("../../MakeLogRegInput/annotated_datasets/combined6/{type}")
@@ -18,9 +19,8 @@ logmodel = config["log_model"]
 rule all:
     input:
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
-                "../output/levels/{mutationtype}_{logmodel}_levels.RData"
-                ], mutationtype = mutationtype,logmodel = logmodel)
-
+                "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"
+                ], mutationtype = mutationtypes,logmodel = logmodels, modeltype = models)
 ## add a rule which finds the reference context for the logistic regression 
 # should make it a part of the training script
 #maybe is should add model summary plots within this rule?
@@ -32,15 +32,26 @@ rule training_models:
     resources:
         threads=4,
         time=250,
-        mem_mb=50000
+        mem_mb=80000
     conda: "envs/callrv2.yaml"
     output:
         model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
-        levels = "../output/levels/{mutationtype}_{logmodel}_levels.RData"
     shell:"""
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
 
+rule EvenOddChromosomeSplit:
+    input: 
+        data = lambda wc: paths[wc.mutationtype]
+    resources:
+        threads=4,
+        time=450,
+        mem_mb=80000
+    output:
+        summary = "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"
+    shell:"""
+    Rscript scripts/EvenOddSplit.R {input.data} {wildcards.modeltype} {wildcards.mutationtype} {output.summary}
+    """
 #placeholder
 # rule model_check_plotting:s
 #     snp_model: expand(["../output/models/snp/{snp_type}_LassoBestModel.RData"]
