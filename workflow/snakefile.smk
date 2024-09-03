@@ -1,7 +1,8 @@
 configfile: "../config/config.yaml"
 
-type_ = config["type"]
+mutationtype = config["type"]
 paths = config["mutation_files"]
+logmodel = config["log_model"]
 
 
 #FILE = glob_wildcards("../../MakeLogRegInput/annotated_datasets/combined6/{type}")
@@ -16,9 +17,9 @@ paths = config["mutation_files"]
 
 rule all:
     input:
-        expand(["../output/models/{mutationtype}_LassoBestModel.RData",
-                "../output/levels/{mutationtype}_levels.RData",
-                ], mutationtype = type_)
+        expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
+                "../output/levels/{mutationtype}_{logmodel}_levels.RData"
+                ], mutationtype = mutationtype,logmodel = logmodel)
 
 ## add a rule which finds the reference context for the logistic regression 
 # should make it a part of the training script
@@ -27,16 +28,17 @@ rule all:
 rule training_models:
     input: 
         trainingfile = lambda wc: paths[wc.mutationtype]
+        #log_model = lambda wc: log_model
     resources:
-        threads=2,
-        time=450,
-        mem_mb=90000
+        threads=4,
+        time=250,
+        mem_mb=50000
     conda: "envs/callrv2.yaml"
     output:
-        model = "../output/models/{mutationtype}_LassoBestModel.RData", # add no intercept_model
-        levels = "../output/levels/{mutationtype}_levels.RData"
+        model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
+        levels = "../output/levels/{mutationtype}_{logmodel}_levels.RData"
     shell:"""
-    Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {output.model}
+    Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
 
 #placeholder

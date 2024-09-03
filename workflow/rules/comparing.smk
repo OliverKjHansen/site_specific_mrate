@@ -1,33 +1,46 @@
-configfile: "../config/config.yaml"
+configfile: "../../config/config.yaml"
 
-snp_type = config["snp_type"]
-indel_type = config["indel_type"]
+type_ = config["type"]
+paths = config["mutation_files"]
+
+models = config["models"]
 
 rule all:
     input:
-        expand(["../../MakeLogRegInput/annotated_datasets/combined6/{snp_type}_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz", #change
-                "../../MakeLogRegInput/annotated_datasets/all_possible/{snp_type}_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-                "../../MakeLogRegInput/annotated_datasets/combined6/{indel_type}_GC_repli_recomb_meth_0.002_long_hg38.dat.gz"
-                "../output/EvenOddSplit/9mer_{snp_type}_LassoBestModel.RData",
-                "../output/EvenOddSplit/genomic_{snp_type}_LassoBestModel.RData",
-                "../output/EvenOddSplit/complete_{snp_type}_LassoBestModel.RData",
-                "../output/EvenOddSplit/3models_{snp_type}_levels.RData",
-                "../output/EvenOddSplit/3models_{snp_type}_predictions.RData"],snp_type = snp_type, indel_type = indel_type)
+        expand(["output/EvenOddSplit/{modeltype}_{mutationtype}_LassoBestModel.RData",
+        "output/EvenOddSplit/{modeltype}_{muttype}_predictions.RData"],
+        mutationtype = type_, modeltype = models)
 
 
-rule EvenOddChromosomeSplit_snps:
-    input:
-        data = "../MakeLogRegInput/annotated_datasets/combined6/{muttype}_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz"
+rule EvenOddChromosomeSplit:
+    input: 
+        data = lambda wc: paths[wc.mutationtype]    
     resources:
         threads=2,
         time=450,
-        mem_mb=50000 
+        mem_mb=50000
+    params: 
+        modeltype = "{modeltype}"
     output:
-        model_9mer = "output/EvenOddSplit/9mer_{muttype}_LassoBestModel.RData",
-        model_genomic = "output/EvenOddSplit/genomic_{muttype}_LassoBestModel.RData",
-        model_complete = "output/EvenOddSplit/complete_{muttype}_LassoBestModel.RData",
-        levels = "output/EvenOddSplit/3models_{muttype}_levels.RData",
-        predictions = "output/EvenOddSplit/3models_{muttype}_predictions.RData",
+        model_type = "output/EvenOddSplit/{modeltype}_{mutationtype}_LassoBestModel.RData",
+        predictions = "output/EvenOddSplit/{modeltype}_{mutationtype}_predictions.RData",
     shell:"""
-    Rscript scripts/EvenOddSplit.R {input.data} 
+    Rscript scripts/EvenOddSplit.R {input.data} {output.model} {params.modeltype} {output.predictions}
     """
+
+# rule model_selection:
+#     input:
+#         trainingfile = lambda wc: paths[wc.mutationtype]    
+#     resources:
+#         threads=2,
+#         time=450,
+#         mem_mb=50000 
+#     output:
+#         model_9mer = "output/EvenOddSplit/9mer_{muttype}_LassoBestModel.RData",
+#         model_genomic = "output/EvenOddSplit/genomic_{muttype}_LassoBestModel.RData",
+#         model_complete = "output/EvenOddSplit/complete_{muttype}_LassoBestModel.RData",
+#         levels = "output/EvenOddSplit/3models_{muttype}_levels.RData",
+#         predictions = "output/EvenOddSplit/3models_{muttype}_predictions.RData",
+#     shell:"""
+#     Rscript scripts/EvenOddSplit.R {input.data} 
+#     """

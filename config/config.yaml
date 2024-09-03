@@ -11,11 +11,12 @@ insertion: "../../MakeLogRegInput/annotated_datasets/combined6/insertion_GC_repl
 deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz"
 }
 
-#model_fit: ["no_intercept", "classic"]
+log_model: ["intercept", "nobeta"]
+
+g_features: ["repli","GC_1k","recomb_decode","CpG_I","meth"]
 
 
 #for haploinsufficiency
-#
 
 #for compareing different models
 models: ["kmer", "genomic","complex"] # have to find another name for the full/complex model

@@ -15,7 +15,8 @@ args = commandArgs(trailingOnly=TRUE)
 #filelists <- list(args[1])
 file <- args[1]
 mutationtype <- args[2]
-output <- args[3]
+log_model <- args[3] # do we want to make a intercept or not
+output <- args[4]
 
 
 # test if there is at least one argument: if not, return an error
@@ -73,23 +74,27 @@ reference_context <- df %>%
 #chaning refernce context
 levelsval <- df$context %>% factor() %>% relevel(reference_context)
 df$context <- df$context %>% factor() %>% relevel(reference_context)
-levelsfile <- paste0("../output/levels/",mutationtype,"_levels.RData") ###change
+
+levelsfile <- sub("models", "levels", output)
+levelsfile <- sub("LassoBestModel", "levels", levelsfile) # making output name
+
+#print(log_model,mutationtype)
+#print(levelsfile)
+
 save(levelsval, file = levelsfile)
 
 
 ## lets try to make two models. one where number of dummy variables are k and one where it is k-1. basically do we choose to fit the intercept or not?
 y<-df$mut
-#x<-data.matrix(df[,c('context','repli','GC_1k','recomb_decode','meth','CpG_I','CpG')])
+
+if (log_model == "nobeta") {
+x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df) # no intercepts
+} else if (log_model== "intercept") {
 x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I, df) # with intercept
-x_no_intercept <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df) # no intercepts
+}
 
 
 cv.fit <-cv.glmnet(x,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 100000)
-cv.fit_no_intercept <-cv.glmnet(x_no_intercept,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 100000) 
 
-filename <- paste0("../output/models/",mutationtype,"_LassoBestModel.RData") ###change
-save(cv.fit, file = filename) #saving model as an R-object
-
-filename_no_intercept <- paste0("../output/models/",mutationtype,"_no_intercept_LassoBestModel.RData") ###change
-save(cv.fit_no_intercept, file = filename_no_intercept) #saving model as an R-object
+save(cv.fit, file = output) #saving model as an R-object
 
