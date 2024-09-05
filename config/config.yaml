@@ -19,4 +19,6 @@ g_features: ["repli","GC_1k","recomb_decode","CpG_I","meth"]
 #for haploinsufficiency
 
 #for compareing different models
-models: ["kmer", "genomic","complex"] # have to find another name for the full/complex model
+models: ["kmer", "genomic","both"] # have to find another name for the full/complex model
+
+gencode : "../resources/gencode.v44.annotation.gtf.gz"

@@ -9,7 +9,10 @@ output/*
 workflow/plots/*
 workflow/logs
 workflow/.snakemake
-
+resources/gencode.v44.annotation.gtf.gz
+resources/exons_hg38.tsv.zip
+resources/exons_44.bed
+resources/*
 
 # User-specific files
 *.rsuser

@@ -53,7 +53,7 @@ y_model <- model.matrix( ~ context -1, df_odd) #kmer model
 } else if (modeltype == "genomic")  {
 x_model <- model.matrix( ~ repli + GC_1k + recomb_decode + meth + CpG_I -1, df_even)
 y_model <- model.matrix( ~ repli + GC_1k + recomb_decode + meth + CpG_I -1, df_odd) # genomic model
-} else if (modeltype == "complex") {
+} else if (modeltype == "both") {
 x_model <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df_even) 
 y_model <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df_odd) # complex model
 }
@@ -80,8 +80,6 @@ save(cv.fit, file = output) #saving model as an R-object
 res <- predict(cv.fit , newx = y_model, s = "lambda.min", type = "response")
 predictions_df <- df_odd
 predictions_df$res <- res
-
-save(predictions_df, file = gsub("summary", "predictions", output)) 
 
 summary <- predictions_df %>% summarise(obs = n(),
                              k = ncol(x_model)+2, # number of variables and intecept and variance!

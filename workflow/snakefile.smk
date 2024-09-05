@@ -1,34 +1,30 @@
 configfile: "../config/config.yaml"
 
 mutationtypes = config["type"]
-paths = config["mutation_files"]
+paths = config["mutation_files"] # maybe do this smarter so the inputdata is not in the configfile
 logmodels = config["log_model"] # intercept or no_intercept(nobeta)
 models = config["models"]
-
-
-#FILE = glob_wildcards("../../MakeLogRegInput/annotated_datasets/combined6/{type}")
-#print(FILE)
+#gencode = config["gencode"]
 
 # haploinsufficiency analysis 
 #include: "rules/haploinsufficiency.smk"
 
 # compare models analysis
-#include: "rules/compare_models.smk"
-#lool at the yaml file to change stufff for  a smarter solution 
+include: "rules/compare_models.smk"
+
+
 
 rule all:
     input:
-        expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
-                "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"
-                ], mutationtype = mutationtypes,logmodel = logmodels, modeltype = models)
-## add a rule which finds the reference context for the logistic regression 
-# should make it a part of the training script
-#maybe is should add model summary plots within this rule?
+        expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),
+        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
+        expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
+                "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
+
 
 rule training_models:
     input: 
         trainingfile = lambda wc: paths[wc.mutationtype]
-        #log_model = lambda wc: log_model
     resources:
         threads=4,
         time=250,
@@ -38,19 +34,6 @@ rule training_models:
         model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
     shell:"""
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
-    """
-
-rule EvenOddChromosomeSplit:
-    input: 
-        data = lambda wc: paths[wc.mutationtype]
-    resources:
-        threads=4,
-        time=450,
-        mem_mb=80000
-    output:
-        summary = "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"
-    shell:"""
-    Rscript scripts/EvenOddSplit.R {input.data} {wildcards.modeltype} {wildcards.mutationtype} {output.summary}
     """
 #placeholder
 # rule model_check_plotting:s
