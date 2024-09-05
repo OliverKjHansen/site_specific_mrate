@@ -42,8 +42,8 @@ reference_context <- df_even %>%
          ) %>% slice_min(diff, n = 1) %>% as.vector() %>% .$context
 
 #changing refernce context
-df_even$context <- df_even$context %>% factor() %>% relevel(reference_context)
-df_odd$context <- df_odd$context %>% factor() %>% relevel(reference_context)
+df_even$context <- df_even$context %>% factor() %>% relevel(reference_context[1]) #sometimes there is multiple context with the same rate
+df_odd$context <- df_odd$context %>% factor() %>% relevel(reference_context[1])
 
 y_train <- df_even$mut # results for glmnet
 
