@@ -21,6 +21,16 @@ rule all:
         expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
+#This rule takes a list of mutations in #?# and creates the optimale KmerPaPa partition
+rule KmerPaPaRates:
+    input:
+        mutation_file: = #
+
+##
+#rule CreatingAnnotationTrack
+
+#rule AnnotatingMutations:
+
 
 rule training_models:
     input: 
@@ -35,16 +45,8 @@ rule training_models:
     shell:"""
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
-#placeholder
-# rule model_check_plotting:s
-#     snp_model: expand(["../output/models/snp/{snp_type}_LassoBestModel.RData"]
-#     indel_model: expand(["../output/models/indel/{indel_type}_LassoBestModel.RData"]
-#     output: "plots/inter/summary.txt" # maybe its best to use a dummy_file instead of every plot
-#     shell:"""
-#    Rscript scripts/model_analysis.R {input.snp_model}
-#    Rscript scripts/model_analysis.R {input.indel_model}
-#    finshed {date} >> {output}
-#    """
+
+#rule AnnotatingPossibleVariants: 
 
 # rule prediction:
 #     input:
@@ -62,3 +64,4 @@ rule training_models:
 #     shell:"""
 #     Rscript scripts/predicting.R {input.pred_data} {params.levels} {input.model}   
 #     """
+

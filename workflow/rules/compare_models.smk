@@ -20,7 +20,7 @@ rule EvenOddChromosomeModels:
 
 rule CreatingCodingRegions:
     input: 
-        gencode = gencode
+        gencode = gencode # change a bit
     resources:
         threads=2,
         time=250,
