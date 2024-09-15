@@ -17,8 +17,8 @@ A2T: ["snv",""],
 C2A: ["snv",""], 
 C2G: ["snv",""],
 C2T: ["snv",""],
-insertion: ["indel", "ins"], #importent!!!!!!!
-deletion: ["indel","del_start"] #importent!!!!!!!
+insertion: ["indel --sample", "ins"], #importent!!!!!!!
+deletion: ["indel --sample","del_start"] #importent!!!!!!!
 }
 
 radiustype: {A2C: "-r 4",

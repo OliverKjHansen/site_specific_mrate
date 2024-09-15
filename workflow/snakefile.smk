@@ -35,7 +35,7 @@ rule all:
 
 #This rule takes a list of mutations in #?# and creates the optimale KmerPaPa partition
 #Where the mutation file should be vcf-like text file where the first four columns are: Chromosome, Position, Ref_Allele, Alt_Allele
-###BIG PROBLEM### It seems that the mutations in the mutation doesnt match the reference genome from the 2bit file
+#something i still wrong with the indel files 
 rule KmerCount:
     input:
         mutationfile = "../resources/{mutationtype}denovo.tsv",
@@ -60,20 +60,26 @@ rule KmerCount:
 #--reverse_complement_method middle??
 
 #Maybe the there could be inserted some crossvalidation here some wehere
-#  incorporate superpatterns -s SUPER_PATTERN, --super_pattern SUPER_PATTERN
-rule KmerPapa:
+# incorporate superpatterns -s SUPER_PATTERN, --super_pattern SUPER_PATTERN
+s_pattern = {"A2C": "--super_pattern NNNNANNNN", "A2G": "--super_pattern NNNNANNNN", "A2T": "--super_pattern NNNNANNNN", 
+            "C2A": "--super_pattern NNNNCNNNN", "C2G": "--super_pattern NNNNCNNNN", "C2T": "--super_pattern NNNNCNNNN", 
+            "insertion": "", "deletion": ""} ## im too tired to do this in a smart way
+
+rule KmerPaPa:
     input:
         backgroundcount = "../output/KmerCount/{mutationtype}_unmutated_kmers.tsv",
         kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
     resources:
-        threads=4,
-        time=250,
-        mem_mb=80000
+        threads=8,
+        time=460,
+        mem_mb=100000 #more memory
+    params:
+        bck_kmer = lambda wc: s_pattern[wc.mutationtype]
     conda: "envs/kmerpapa.yaml"
     output: 
         kmerpartition = "../output/KmerPaPa/{mutationtype}_PaPa.tsv" 
     shell:"""
-    kmerpapa --positive {input.kmercount} --background {input.backgroundcount} --penalty_values 3 5 6 --pseudo_counts 0.5 1 10 > {output.kmerpartition}
+    kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.bck_kmer} --penalty_values 3 5 6 --pseudo_counts 0.5 1 10 > {output.kmerpartition}
     """
 
 ##
