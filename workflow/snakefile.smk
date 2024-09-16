@@ -1,6 +1,8 @@
 configfile: "../config/config.yaml"
 
 mutationtypes = config["mutationtype"]
+variationtypes = config["variationtype"]
+
 paths = config["mutationfiles"] # maybe do this smarter so the inputdata is not in the configfile
 logmodels = config["logmodel"] # intercept or no_intercept(nobeta)
 models = config["models"]
@@ -9,9 +11,8 @@ models = config["models"]
 genome2bit = config["hg382bit"]
 genomebedfile = config["hg38bedfile"]
 
-
-variationtypes = config["variationtype"]
-radius_background = config["radiustype"]
+bck_kmer= config["bck_kmer"]
+mut_translations = config["mut_translations"]
 
 
 
@@ -25,18 +26,32 @@ glorific = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bi
 
 rule all:
     input:
-        expand(["../output/KmerCount/{mutationtype}_unmutated_kmers.tsv",
+        expand(["../output/KmerCount/{variationtype}_unmutated_kmers.tsv",
                 "../output/KmerCount/{mutationtype}_mutated_kmers.tsv",
-                "../output/KmerPaPa/{mutationtype}_PaPa.tsv"], mutationtype = mutationtypes),
+                "../output/KmerPaPa/{mutationtype}_PaPa.tsv"], mutationtype = mutationtypes, variationtype = variationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
         expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
+rule BackgroundKmerCount:
+    input:
+        regions = genomebedfile,
+        genome = genome2bit
+    resources:
+        threads=4,
+        time=250,
+        mem_mb=40000
+    params:
+        bck_kmer = lambda wc: bck_kmer[wc.variationtype] #sets the radius from the configfile
+    conda: "envs/kmercounter.yaml"
+    output: 
+        backgroundcount = "../output/KmerCount/{variationtype}_unmutated_kmers.tsv"
+    shell:"""
+        kmer_counter background --bed {input.regions} {params.bck_kmer} {input.genome} > {output.backgroundcount}
+    """
 
-#This rule takes a list of mutations in #?# and creates the optimale KmerPaPa partition
 #Where the mutation file should be vcf-like text file where the first four columns are: Chromosome, Position, Ref_Allele, Alt_Allele
-#something i still wrong with the indel files 
-rule KmerCount:
+rule MutationsKmerCount:
     input:
         mutationfile = "../resources/{mutationtype}denovo.tsv",
         regions = genomebedfile,
@@ -44,34 +59,31 @@ rule KmerCount:
     resources:
         threads=4,
         time=250,
-        mem_mb=80000
+        mem_mb=10000
     params: 
-        variationtype = lambda wc: variationtypes[wc.mutationtype][0], #this check if the mutationtype is a indel or snv
-        breaktype = lambda wc: variationtypes[wc.mutationtype][1], #this determind how the breakpoit is modellen. Only importent for indels. should be empty for snv
-        radius = lambda wc: radius_background[wc.mutationtype] #sets the radius from the configfile
+        vat_type = lambda wc: mut_translations[wc.mutationtype][0], #this check if the mutationtype is a indel or snv
+        sample = lambda wc: mut_translations[wc.mutationtype][1], # too sample, only relevant for indels
+        breaktype = lambda wc:mut_translations[wc.mutationtype][2] #this determind how the breakpoit is modellen. Only importent for indels. should be empty for snv #sets the radius from the configfile
     conda: "envs/kmercounter.yaml"
     output: 
-        backgroundcount = "../output/KmerCount/{mutationtype}_unmutated_kmers.tsv",
         kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
     shell:"""
-        kmer_counter background --bed {input.regions} {params.radius} {input.genome} > {output.backgroundcount}
-        kmer_counter {params.variationtype} -r 4 {input.genome} {input.mutationfile} {params.breaktype} > {output.kmercount}
+        kmer_counter {params.vat_type} {params.sample} -r 4 {input.genome} {input.mutationfile} {params.breaktype} > {output.kmercount}
     """
 #--reverse_complement_method middle??
 
 #Maybe the there could be inserted some crossvalidation here some wehere
-# incorporate superpatterns -s SUPER_PATTERN, --super_pattern SUPER_PATTERN
 s_pattern = {"A2C": "--super_pattern NNNNANNNN", "A2G": "--super_pattern NNNNANNNN", "A2T": "--super_pattern NNNNANNNN", 
             "C2A": "--super_pattern NNNNCNNNN", "C2G": "--super_pattern NNNNCNNNN", "C2T": "--super_pattern NNNNCNNNN", 
             "insertion": "", "deletion": ""} ## im too tired to do this in a smart way
 
 rule KmerPaPa:
     input:
-        backgroundcount = "../output/KmerCount/{mutationtype}_unmutated_kmers.tsv",
-        kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
+        backgroundcount=lambda wc: "../output/KmerCount/{}_unmutated_kmers.tsv".format(mut_translations[wc.mutationtype][0]), ##i tried to be smart but it took me 20 mintutes to realise i had to put the 0-index here 
+        kmercount=lambda wc: "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
     resources:
         threads=8,
-        time=460,
+        time=600,
         mem_mb=100000 #more memory
     params:
         bck_kmer = lambda wc: s_pattern[wc.mutationtype]
@@ -85,7 +97,7 @@ rule KmerPaPa:
 ##
 #rule CreatingAnnotationTrack
 
-#rule AnnotatingMutations:
+# rule AnnotatingMutations:
 
 
 rule training_models:

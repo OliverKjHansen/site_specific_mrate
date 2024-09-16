@@ -1,5 +1,6 @@
 
-mutationtype : ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
+mutationtype: ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
+variationtype: ["snv","indel"]
 #path to diferent mutation files
 mutationfiles: {A2C: "../../MakeLogRegInput/annotated_datasets/combined6/A2C_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
 A2G: "../../MakeLogRegInput/annotated_datasets/combined6/A2G_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
@@ -11,26 +12,30 @@ insertion: "../../MakeLogRegInput/annotated_datasets/combined6/insertion_GC_repl
 deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz"
 }
 
-variationtype: {A2C: ["snv",""],
-A2G: ["snv",""],
-A2T: ["snv",""],
-C2A: ["snv",""], 
-C2G: ["snv",""],
-C2T: ["snv",""],
-insertion: ["indel --sample", "ins"], #importent!!!!!!!
-deletion: ["indel --sample","del_start"] #importent!!!!!!!
+mut_translations: {A2C: ["snv","",""],
+A2G: ["snv","",""],
+A2T: ["snv","",""],
+C2A: ["snv","",""], 
+C2G: ["snv","",""],
+C2T: ["snv","",""],
+insertion: ["indel", "--sample", "ins"], #importent!!!!!!!
+deletion: ["indel", "--sample","del_start"] #importent!!!!!!!
 }
 
-radiustype: {A2C: "-r 4",
-A2G: "-r 4",
-A2T: "-r 4",
-C2A: "-r 4", 
-C2G: "-r 4",
-C2T: "-r 4",
-insertion: "--before_after 4 3",
-deletion: "--before_after 4 3"
+# valid_combinations: { A2C": "snv",
+# A2G: "snv",
+# A2T: "snv",
+# C2A: "snv", 
+# C2G: "snv",
+# C2T: "snv",
+# insertion: "indel",
+# deletion": "indel"
+# }
+
+bck_kmer: {snv: "-r 4",
+indel: "--before_after 4 3"
 }
-#-radius 4
+#--radius 4
 #--before_after 4 3
 
 #xcxc|x|cxc # how indel_kmers are decidedd
