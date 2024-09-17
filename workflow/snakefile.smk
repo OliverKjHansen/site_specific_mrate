@@ -10,95 +10,78 @@ models = config["models"]
 #gencode = config["gencode"]
 genome2bit = config["hg382bit"]
 genomebedfile = config["hg38bedfile"]
+annotation_parameters = config["annotation_parameters"]
 
 bck_kmer= config["bck_kmer"]
 mut_translations = config["mut_translations"]
 
-
-
-
+include: "rules/kmerpapa_crossvalidation.smk"
+penalty = config["penalty_values"]
+pseudo = config["pseudo_counts"]
 # haploinsufficiency analysis 
 #include: "rules/haploinsufficiency.smk"
 # compare models analysis
 #include: "rules/compare_models.smk"
 
-glorific = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific" #change this later
+glorific_path = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific" #change this later
+
+# ["../output/KmerCount/{variationtype}_unmutated_kmers.tsv",
+#                 "../output/KmerCount/{mutationtype}_mutated_kmers.tsv",
 
 rule all:
     input:
-        expand(["../output/KmerCount/{variationtype}_unmutated_kmers.tsv",
-                "../output/KmerCount/{mutationtype}_mutated_kmers.tsv",
-                "../output/KmerPaPa/{mutationtype}_PaPa.tsv"], mutationtype = mutationtypes, variationtype = variationtypes),
+        expand([#"../output/KmerCount/{variationtype}_unmutated_kmers.tsv",
+                "../output/KmerPaPa/{mutationtype}/{mutationtype}_{penalty}_{pseudo}_PaPa.tsv"], mutationtype = mutationtypes, penalty = penalty, pseudo = pseudo), #could make this its own workflow
+        expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",#], mutationtype = mutationtypes),
+                "../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.dat.gz"], mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
         expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
-rule BackgroundKmerCount:
-    input:
-        regions = genomebedfile,
-        genome = genome2bit
-    resources:
-        threads=4,
-        time=250,
-        mem_mb=40000
-    params:
-        bck_kmer = lambda wc: bck_kmer[wc.variationtype] #sets the radius from the configfile
-    conda: "envs/kmercounter.yaml"
-    output: 
-        backgroundcount = "../output/KmerCount/{variationtype}_unmutated_kmers.tsv"
-    shell:"""
-        kmer_counter background --bed {input.regions} {params.bck_kmer} {input.genome} > {output.backgroundcount}
-    """
 
-#Where the mutation file should be vcf-like text file where the first four columns are: Chromosome, Position, Ref_Allele, Alt_Allele
-rule MutationsKmerCount:
-    input:
-        mutationfile = "../resources/{mutationtype}denovo.tsv",
-        regions = genomebedfile,
-        genome = genome2bit
+
+# need to fix the sorting and future filterong of files or do some magic with touching output if i refilter and sort everytime??
+# rule SortingFilesAndFilter: ## it is easier to do as a rule because snakemake restarts everyting if nit
+#     # input:
+#     #     mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change
+#     #     callability = genomebedfile # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
+#     resources:
+#         threads=4,
+#         time=120,
+#         mem_mb=5000
+#     output:
+#         mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change
+#         callability = genomebedfile
+#     shell:"""
+#     sort -k1,1 -o {output.mutations} {output.mutations}
+#     sort -k1,1 -o {output.callability} {output.callability}
+#     """
+
+#rule CreateAnnotationTrack
+
+#add the partion-flag -p kmerpap_output when i decide to run it
+# does not work with sex chromosomes
+rule AnnotateMutations: # we annotate existing mutations and generate a dataset of sampled from the full genome look at downsample parameter
+    input: 
+        ref_genome = genome2bit,
+        kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
+        mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change
+        callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
+        annotationfile= annotation_parameters #I could make this myself 
     resources:
         threads=4,
-        time=250,
-        mem_mb=10000
+        time=120,
+        mem_mb=5000
+    #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
-        vat_type = lambda wc: mut_translations[wc.mutationtype][0], #this check if the mutationtype is a indel or snv
-        sample = lambda wc: mut_translations[wc.mutationtype][1], # too sample, only relevant for indels
-        breaktype = lambda wc:mut_translations[wc.mutationtype][2] #this determind how the breakpoit is modellen. Only importent for indels. should be empty for snv #sets the radius from the configfile
-    conda: "envs/kmercounter.yaml"
-    output: 
-        kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
+        glorific = glorific_path, # when conda compatibility fixed remive this
+        var_type = lambda wc: mut_translations[wc.mutationtype][0],
+        downsample = "0.002"
+    output:
+        annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz"
     shell:"""
-        kmer_counter {params.vat_type} {params.sample} -r 4 {input.genome} {input.mutationfile} {params.breaktype} > {output.kmercount}
+    {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.mutations} -a {input.annotationfile} -d {params.downsample} -l --verbose | gzip > {output.annotated_mutations}
     """
-#--reverse_complement_method middle??
-
-#Maybe the there could be inserted some crossvalidation here some wehere
-s_pattern = {"A2C": "--super_pattern NNNNANNNN", "A2G": "--super_pattern NNNNANNNN", "A2T": "--super_pattern NNNNANNNN", 
-            "C2A": "--super_pattern NNNNCNNNN", "C2G": "--super_pattern NNNNCNNNN", "C2T": "--super_pattern NNNNCNNNN", 
-            "insertion": "", "deletion": ""} ## im too tired to do this in a smart way
-
-rule KmerPaPa:
-    input:
-        backgroundcount=lambda wc: "../output/KmerCount/{}_unmutated_kmers.tsv".format(mut_translations[wc.mutationtype][0]), ##i tried to be smart but it took me 20 mintutes to realise i had to put the 0-index here 
-        kmercount=lambda wc: "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
-    resources:
-        threads=8,
-        time=600,
-        mem_mb=100000 #more memory
-    params:
-        bck_kmer = lambda wc: s_pattern[wc.mutationtype]
-    conda: "envs/kmerpapa.yaml"
-    output: 
-        kmerpartition = "../output/KmerPaPa/{mutationtype}_PaPa.tsv" 
-    shell:"""
-    kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.bck_kmer} --penalty_values 3 5 6 --pseudo_counts 0.5 1 10 > {output.kmerpartition}
-    """
-
-##
-#rule CreatingAnnotationTrack
-
-# rule AnnotatingMutations:
-
 
 rule training_models:
     input: 
@@ -114,12 +97,57 @@ rule training_models:
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
 
-#rule AnnotatingPossibleVariants: 
+# rule GeneratePossibleMutations: # use Genovo and glorific
+#     input: 
+#         ref_genome = genome2bit,
+#         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
+#         possible_lof = "../resources/unzipped_sorted/{mutationtype}.gencode_v42_LoF_SNVs_sorted.txt", #hardcoded should change
+#         callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
+#         annotationfile= annotation_parameters #I could make this myself 
+#     resources:
+#         threads=4,
+#         time=120,
+#         mem_mb=5000
+#     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
+#     params: 
+#         glorific = glorific_path, # when conda compatibility fixed remive this
+#         var_type = lambda wc: mut_translations[wc.mutationtype][0],
+#         downsample = "0"
+#     output:
+#         possible_mutations = "../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.dat.gz"
+#     shell:"""
+#     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -l --verbose | gzip > {output.annotated_mutations}
+#     genovo 
+#     sort -k1,1 -o {input.possible_lof} {input.possible_lof} # remember to sort the output or else the whole pipeline will run again
+#      """
+#/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific indel files/hg38.2bit ../site_specific_mrate/resources/cds_42.bed empty -a ../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt -d 1 -l --verbose 
 
-# rule prediction:
+#add the partion-flag -p kmerpap_output when i decide to run it
+rule AnnotatePossibleMutations:
+    input: 
+        ref_genome = genome2bit,
+        kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
+        possible_lof = "../resources/unzipped_sorted/{mutationtype}.gencode_v42_LoF_SNVs_sorted.txt", #hardcoded should change
+        callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
+        annotationfile= annotation_parameters #I could make this myself 
+    resources:
+        threads=4,
+        time=120,
+        mem_mb=5000
+    #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
+    params: 
+        glorific = glorific_path, # when conda compatibility fixed remive this
+        var_type = lambda wc: mut_translations[wc.mutationtype][0],
+        downsample = "0"
+    output:
+        annotated_mutations = "../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.dat.gz"
+    shell:"""
+    {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -l --verbose | gzip > {output.annotated_mutations}
+    """
+
+# rule Prediction:
 #     input:
-#         snp_model = "output/{muttype}_LassoBestModel.RData",
-#         #indel_model = ???
+#         snp_model = "output/{muttype}_nobeta_LassoBestModel.RData",
 #         pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
 #     resources:
 #         threads=2,
@@ -133,3 +161,4 @@ rule training_models:
 #     Rscript scripts/predicting.R {input.pred_data} {params.levels} {input.model}   
 #     """
 
+#rule ScalePredictions 

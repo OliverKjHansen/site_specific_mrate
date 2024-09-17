@@ -12,6 +12,10 @@ insertion: "../../MakeLogRegInput/annotated_datasets/combined6/insertion_GC_repl
 deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz"
 }
 
+penalty_values: [1,5]
+
+pseudo_counts: [1,5]
+
 mut_translations: {A2C: ["snv","",""],
 A2G: ["snv","",""],
 A2T: ["snv","",""],
@@ -22,21 +26,9 @@ insertion: ["indel", "--sample", "ins"], #importent!!!!!!!
 deletion: ["indel", "--sample","del_start"] #importent!!!!!!!
 }
 
-# valid_combinations: { A2C": "snv",
-# A2G: "snv",
-# A2T: "snv",
-# C2A: "snv", 
-# C2G: "snv",
-# C2T: "snv",
-# insertion: "indel",
-# deletion": "indel"
-# }
-
 bck_kmer: {snv: "-r 4",
 indel: "--before_after 4 3"
 }
-#--radius 4
-#--before_after 4 3
 
 #xcxc|x|cxc # how indel_kmers are decidedd
 
@@ -44,13 +36,15 @@ logmodel: ["intercept", "nobeta"]
 
 #gfeatures: ["repli","GC_1k","recomb_decode","CpG_I","meth"]
 
-
 #for haploinsufficiency
 
 #for compareing different models
 models: ["kmer", "genomic","both"] # have to find another name for the full/complex model
 
+
+#resources
 #gencode : "../resources/gencode.v44.annotation.gtf.gz"
 gencode: "../resources/gencode.v42.annotation.gtf.gz"
 hg382bit:  "../resources/hg38.2bit"
 hg38bedfile: "../resources/hg38.bed" ## this should change or be double checked. it was just somethig i had laying around
+annotation_parameters: ../../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt # hardcoded at the moment
