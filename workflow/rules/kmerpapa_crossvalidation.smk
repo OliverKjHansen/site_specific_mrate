@@ -62,15 +62,15 @@ rule KmerPaPaCrossvalidation:
         kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
     resources:
         threads=8,
-        time=120,
-        mem_mb=100000 #more memory
+        time=480,
+        mem_mb=150000 #more memory
     params:
         super_pattern = lambda wc: s_pattern[wc.mutationtype]
     conda: "../envs/kmerpapa.yaml"
     output: 
-        kmerpartition = "../output/KmerPaPa/{mutationtype}/{mutationtype}_{penalty}_{pseudo}_PaPa.tsv" 
+        cv_values = "../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_{penalty}_{pseudo}_PaPa_cv.tsv" 
     shell:"""
-    kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.super_pattern} --penalty_values {wildcards.penalty} --pseudo_counts {wildcards.pseudo} > {output.kmerpartition}
+    kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.super_pattern} --penalty_values {wildcards.penalty} --pseudo_counts {wildcards.pseudo} --CV_only --nfolds 3 --CVfile {output}
     """
 #Finding the best KmerPaPa partition
 #properly make a gridplot or a minimum function
