@@ -31,8 +31,10 @@ glorific_path = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.
 
 rule all:
     input:
-        expand([#"../output/KmerCount/{variationtype}_unmutated_kmers.tsv",
-                "../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_{penalty}_{pseudo}_PaPa_cv.tsv"], mutationtype = mutationtypes, penalty = penalty, pseudo = pseudo), #could make this its own workflow
+        expand([#"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_{penalty}_{pseudo}_PaPa_cv.tsv",
+                #"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_parametergridfile.txt",
+                #"plots/KmerPaPa/{mutationtype}_alpha_and_pseudo_loglike.pdf",
+                "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",], mutationtype = mutationtypes),
                 #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.dat.gz"], mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),

@@ -1,0 +1,9 @@
+name: rplotting
+channels:
+  - conda-forge
+dependencies: 
+  - r-callr
+  - r-tidyverse
+  - r-plotly
+  - r-ggpubr
+  - r-svglite

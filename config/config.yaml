@@ -13,8 +13,8 @@ deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_
 }
 
 ####Kmerpapa crossvalidation
-penalty_values: [5]
-pseudo_counts: [1]
+penalty_values: [1,5,10]
+pseudo_counts: [1,5]
 
 #paths to possible Lof files 
 possible_variants_path: {A2C: "../../MakeLogRegInput/annotated_datasets/all_possible/A2C_GC_repli_recomb_meth_0_long_hg38.dat.gz",

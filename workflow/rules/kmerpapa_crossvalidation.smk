@@ -10,6 +10,9 @@
 # bck_kmer= config["bck_kmer"] # change to superpattern
 # mut_translations = config["mut_translations"]
 
+penalty = config["penalty_values"]
+pseudo = config["pseudo_counts"]
+
 rule BackgroundKmerCount:
     input:
         regions = genomebedfile, # might be a placeholder # maybe add blacklist filtering
@@ -74,7 +77,40 @@ rule KmerPaPaCrossvalidation:
     """
 #Finding the best KmerPaPa partition
 #properly make a gridplot or a minimum function
-#Rule 
 
+rule FindingBestParameter:
+    input:
+        crossvalidation = expand(["../output/KmerPaPa/{{mutationtype}}_cv/{{mutationtype}}_{penalty}_{pseudo}_PaPa_cv.tsv"], penalty = penalty, pseudo = pseudo)
+    resources:
+        threads=1,
+        time=60,
+        mem_mb=5000 #more memory
+    conda: "../envs/rplotting.yaml"
+    output: 
+        parameter_grid = "../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_parametergridfile.txt",
+        r_plot = "plots/KmerPaPa/{mutationtype}_alpha_and_pseudo_loglike.pdf",
+        best_parameters = "../output/KmerPaPa/best_parameters/{mutationtype}_alpha_and_pseudo_best_parameters.txt"
+    shell:"""
+    awk 'FNR>1 || NR==1' {input.crossvalidation} > {output.parameter_grid}
+    Rscript scripts/parameter_search_plot.R {wildcards.mutationtype} {output.parameter_grid} {output.r_plot} {output.best_parameters}
+    """
 
-
+rule BestKmerPaPa:
+    input:
+        backgroundcount =lambda wc: "../output/KmerCount/{}_unmutated_kmers.tsv".format(mut_translations[wc.mutationtype][0]), ##i tried to be smart but it took me 20 mintutes to realise i had to put the 0-index here 
+        kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv",
+        best_parameters = "../output/KmerPaPa/best_parameters/{mutationtype}_alpha_and_pseudo_best_parameters.txt" # kinda of working as a dummy
+    resources:
+        threads=8,
+        time=480,
+        mem_mb=150000 #more memory
+    params:
+        super_pattern = lambda wc: s_pattern[wc.mutationtype],
+        alpha = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_alpha_and_pseudo_best_parameters.txt".format(wc.mutationtype)).read().split()[0]),
+        pseudo = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_alpha_and_pseudo_best_parameters.txt".format(wc.mutationtype)).read().split()[1])
+    conda: "../envs/kmerpapa.yaml"
+    output: 
+        kmerpapa = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"
+    shell:"""
+    kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.super_pattern} --penalty_values {params.alpha} --pseudo_counts {params.pseudo} -o {output.kmerpapa}
+    """
