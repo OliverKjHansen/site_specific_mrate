@@ -1,5 +1,5 @@
 
-mutationtype: ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
+mutationtype: ["insertion", "deletion"] #["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
 variationtype: ["snv","indel"]
 #path to diferent mutation files
 mutationfiles: {A2C: "../../MakeLogRegInput/annotated_datasets/combined6/A2C_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
@@ -17,14 +17,22 @@ penalty_values: [1,5,10]
 pseudo_counts: [1,5]
 
 #paths to possible Lof files 
-possible_variants_path: {A2C: "../../MakeLogRegInput/annotated_datasets/all_possible/A2C_GC_repli_recomb_meth_0_long_hg38.dat.gz",
+possible_variants_path: {A2C: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2C.gencode_v42_LoF_SNVs_sorted.txt",
+A2G: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2G.gencode_v42_LoF_SNVs_sorted.txt",
+A2T: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2T.gencode_v42_LoF_SNVs_sorted.txt",
+C2A: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2A.gencode_v42_LoF_SNVs_sorted.txt", 
+C2G: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2G.gencode_v42_LoF_SNVs_sorted.txt",
+C2T: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2T.gencode_v42_LoF_SNVs_sorted.txt"
+}
+
+annotated_variants_path: {A2C: "../../MakeLogRegInput/annotated_datasets/all_possible/A2C_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 A2G: "../../MakeLogRegInput/annotated_datasets/all_possible/A2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 A2T: "../../MakeLogRegInput/annotated_datasets/all_possible/A2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 C2A: "../../MakeLogRegInput/annotated_datasets/all_possible/C2A_GC_repli_recomb_meth_0_long_hg38.dat.gz", 
 C2G: "../../MakeLogRegInput/annotated_datasets/all_possible/C2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 C2T: "../../MakeLogRegInput/annotated_datasets/all_possible/C2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-insertion: "../output/PossibleMutations/insertion_possible_lof_annotated.dat.gz",
-deletion: "../output/PossibleMutations/deletion_possible_lof_annotated.dat.gz"
+insertion: "../output/PossibleVariants/insertion_possible_lof.dat.gz",
+deletion: "../output/PossibleVariants/deletion_possible_lof.dat.gz"
 }
 
 mut_translations: {A2C: ["snv","",""],
@@ -43,7 +51,7 @@ indel: "--before_after 4 3"
 
 #xcxc|x|cxc # how indel_kmers are decidedd
 
-logmodel: ["intercept", "nobeta"]
+logmodel: ["nobeta"]
 
 #gfeatures: ["repli","GC_1k","recomb_decode","CpG_I","meth"]
 
