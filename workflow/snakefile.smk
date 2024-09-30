@@ -19,7 +19,7 @@ mut_translations = config["mut_translations"]
 
 include: "rules/kmerpapa_crossvalidation.smk"
 penalty = config["penalty_values"]
-pseudo = config["pseudo_counts"]
+alpha = config["alpha_values"]
 # haploinsufficiency analysis 
 #include: "rules/haploinsufficiency.smk"
 # compare models analysis
@@ -30,16 +30,19 @@ glorific_path = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.
 # ["../output/KmerCount/{variationtype}_unmutated_kmers.tsv",
 #                 "../output/KmerCount/{mutationtype}_mutated_kmers.tsv",
 
+#chrom pos context repli GC_1k GC_10k GC_100k recomb_decode recomb_pyrho meth CpG_I CDS mut A C G T
+
 rule all:
     input:
         expand([#"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_{penalty}_{pseudo}_PaPa_cv.tsv",
                 #"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_parametergridfile.txt",
-                #"plots/KmerPaPa/{mutationtype}_alpha_and_pseudo_loglike.pdf",s
+                #"plots/KmerPaPa/{mutationtype}_penalty_and_pseudo_loglike.pdf",s
                 "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",
-                "../output/PossibleVariants/{mutationtype}_possible_lof.dat.gz"], mutationtype = mutationtypes),
-                #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.dat.gz"
-                #"../output/Predictions/{mutationtype}_predictions.RData"], mutationtype = mutationtypes),
+                "../output/PossibleVariants/{mutationtype}_possible_lof.tsv",
+                #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",
+                "../output/Predictions/{mutationtype}_predictions.RData"
+                ],mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
         expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
@@ -103,7 +106,7 @@ rule training_models:
     shell:"""
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
-#onlyworks for indels
+#onlyworks for indels. THis is meant to generate the possible lof indels
 rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy touch indel for generating indels because they are generated in the annotation step
     input: 
         ref_genome = genome2bit,
@@ -121,18 +124,21 @@ rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy t
         downsample = "1"
     output:
         dummy_file = "../output/PossibleVariants/{mutationtype}_empty.txt",
-        possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.dat.gz"
+        possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.tsv"
     shell:"""
     touch {output.dummy_file}
     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {output.dummy_file} -a {input.annotationfile} -p {input.kmerpartition} -d {params.downsample} -l --verbose | gzip > {output.possible_mutations}
-    sort -k1,1 -o {output.possible_mutations} {output.possible_mutations}
     """
-    # remember to sort the output or else the whole pipeline will run again
+
+#   sort -k1,1 -o {output.possible_mutations} {output.possible_mutations}
+#   gzip 
+#   add a gunzip statement after the sorting 
+#   remember to sort the output or else the whole pipeline will run again
 
 #/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific indel files/hg38.2bit ../site_specific_mrate/resources/cds_42.bed empty -a ../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt -d 1 -l --verbose 
 
-#add the partion-flag -p kmerpap_output when i decide to run it
-# rule AnnotatePossibleMutations: # indels are alrady annotated
+#add the partion-flag -p kmerpap_output when i decide to run it. # this only annotates snvs
+# rule AnnotatePossibleMutations: # indels are alrady annotated 
 #     input: 
 #         ref_genome = genome2bit,
 #         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
@@ -149,27 +155,27 @@ rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy t
 #         var_type = lambda wc: mut_translations[wc.mutationtype][0],
 #         downsample = "0"
 #     output:
-#         annotated_mutations = "../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.dat.gz"
+#         annotated_mutations = "../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv"
 #     shell:"""
-#     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose | gzip > {output.annotated_mutations}
+#     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose > {output.annotated_mutations}
 #     """
 
-# rule Prediction:
-#     input:
-#         model = "../output/models/{mutationtype}_nobeta_LassoBestModel.RData",
-#         annotated_lof = lambda wc: annotated_variants_path[wc.mutationtype]
-#         #pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
-#     resources:
-#         threads=2,s
-#         time=180,
-#         mem_mb=15000 
-#     conda: "envs/callrv2.yaml"
-#     params: 
-#         levels = "../output/{mutationtype}_levels.RData"
-#     output:
-#         predictions = "../output/Predictions/{mutationtype}_predictions.RData"
-#     shell:"""
-#     Rscript scripts/predictions.R {input.annotated_lof} {input.model} {params.levels} {output.predictions}
-#     """
+rule Prediction:
+    input:
+        model = "../output/models/{mutationtype}_nobeta_LassoBestModel.RData",
+        annotated_lof = lambda wc: annotated_variants_path[wc.mutationtype]
+        #pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
+    resources:
+        threads=2,
+        time=180,
+        mem_mb=15000 
+    conda: "envs/callrv2.yaml"
+    params: 
+        levels = "../output/{mutationtype}_levels.RData"
+    output:
+        predictions = "../output/Predictions/{mutationtype}_predictions.RData"
+    shell:"""
+    Rscript scripts/predictions.R {input.annotated_lof} {input.model} {params.levels} {output.predictions}
+    """
 
 #rule ScalePredictions 

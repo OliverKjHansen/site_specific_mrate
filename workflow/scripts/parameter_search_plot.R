@@ -36,8 +36,8 @@ grid_plot <- df %>%
   theme_pubr(legend = "right") + 
   ggtitle(mutationtype) +
   theme(plot.title = element_text(hjust = 0.5)) +
-  xlab("Pseudo Count") +
-  ylab("Alpha") +
+  xlab("Alpha (pseudo count)") +
+  ylab("Penalty (complexity)") +
   guides(colour=guide_legend(title.position = "top", ncol=1))
   
 # third_dimension <- plot_ly(df, x = ~alpha, y = ~P, z = ~LL_test) %>% 

@@ -1,6 +1,5 @@
 
 library(tidyverse)
-library(lmerTest)
 library(stringi)
 library(glmnet)
 
@@ -9,7 +8,7 @@ args = commandArgs(trailingOnly=TRUE)
 
 file <- args[1]
 model <- args[2]
-levelsdata <- args[2]
+levelsval <- args[3]
 output <- args[4]
 
 # loading in prediction dataset
@@ -28,19 +27,19 @@ df[c("recomb_decode")] <- log(df[c("recomb_decode")]+1)
 load(model)
 
 #loading in levels
-load(levelsdata)
+load(levelsval)
 
-new_df <- df[c("context","repli","GC_1k","recomb_decode","meth","CpG_I")]
+new_df <- df[c("context","repli","GC_1k","recomb_decode","meth","CpG_I")] # make this a input/parameter
 
-x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df)
+x <- model.matrix( ~ factor(context, levels = sort(unique(levelsval)) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df)
 
 options(na.action='na.pass')
 
-if (log_model == "nobeta") {
-x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df) # no intercepts
-} else if (log_model== "intercept") {
-x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I, df) # with intercept
-}
+# if (log_model == "nobeta") {
+# x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df) # no intercepts
+# } else if (log_model== "intercept") {
+# x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I, df) # with intercept
+# }
 
 
 res_min <- predict(cv.fit, newx = x, s = "lambda.min", type = "response")
