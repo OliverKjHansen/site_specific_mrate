@@ -39,9 +39,9 @@ rule all:
                 #"plots/KmerPaPa/{mutationtype}_penalty_and_pseudo_loglike.pdf",s
                 "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",
-                "../output/PossibleVariants/{mutationtype}_possible_lof.tsv",
+                #"../output/PossibleVariants/{mutationtype}_possible_lof.tsv",
                 #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",
-                "../output/Predictions/{mutationtype}_predictions.RData"
+                "../output/Predictions/{mutationtype}_predictions.tsv"
                 ],mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
@@ -107,28 +107,28 @@ rule training_models:
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
 #onlyworks for indels. THis is meant to generate the possible lof indels
-rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy touch indel for generating indels because they are generated in the annotation step
-    input: 
-        ref_genome = genome2bit,
-        kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
-        callability = "../resources/cds_42.bed", # bedfile of transripts so we only annotated variants in codingregions. everypositions is a possible frameshift and all frameshift are lof
-        annotationfile= annotation_parameters #I could make this myself 
-    resources:
-        threads=4,
-        time=120,
-        mem_mb=5000
-    #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
-    params: 
-        glorific = glorific_path, # when conda compatibility fixed remive this
-        var_type = lambda wc: mut_translations[wc.mutationtype][0],
-        downsample = "1"
-    output:
-        dummy_file = "../output/PossibleVariants/{mutationtype}_empty.txt",
-        possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.tsv"
-    shell:"""
-    touch {output.dummy_file}
-    {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {output.dummy_file} -a {input.annotationfile} -p {input.kmerpartition} -d {params.downsample} -l --verbose | gzip > {output.possible_mutations}
-    """
+# rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy touch indel for generating indels because they are generated in the annotation step
+#     input: 
+#         ref_genome = genome2bit,
+#         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
+#         callability = "../resources/cds_42.bed", # bedfile of transripts so we only annotated variants in codingregions. everypositions is a possible frameshift and all frameshift are lof
+#         annotationfile= annotation_parameters #I could make this myself 
+#     resources:
+#         threads=4,
+#         time=120,
+#         mem_mb=5000
+#     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
+#     params: 
+#         glorific = glorific_path, # when conda compatibility fixed remive this
+#         var_type = lambda wc: mut_translations[wc.mutationtype][0],
+#         downsample = "1"
+#     output:
+#         dummy_file = "../output/PossibleVariants/{mutationtype}_empty.txt",
+#         possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.tsv"
+#     shell:"""
+#     touch {output.dummy_file}
+#     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {output.dummy_file} -a {input.annotationfile} -p {input.kmerpartition} -d {params.downsample} -l --verbose | gzip > {output.possible_mutations}
+#     """
 
 #   sort -k1,1 -o {output.possible_mutations} {output.possible_mutations}
 #   gzip 
@@ -171,9 +171,9 @@ rule Prediction:
         mem_mb=15000 
     conda: "envs/callrv2.yaml"
     params: 
-        levels = "../output/{mutationtype}_levels.RData"
+        levels = "../output/levels/{mutationtype}_nobeta_levels.RData"# can do log_model here??
     output:
-        predictions = "../output/Predictions/{mutationtype}_predictions.RData"
+        predictions = "../output/Predictions/{mutationtype}_predictions.tsv"
     shell:"""
     Rscript scripts/predictions.R {input.annotated_lof} {input.model} {params.levels} {output.predictions}
     """

@@ -1,6 +1,6 @@
 
 library(tidyverse)
-library(stringi)
+#library(stringi)
 library(glmnet)
 
 # inputfile
@@ -31,8 +31,7 @@ load(levelsval)
 
 new_df <- df[c("context","repli","GC_1k","recomb_decode","meth","CpG_I")] # make this a input/parameter
 
-x <- model.matrix( ~ factor(context, levels = sort(unique(levelsval)) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df)
-
+x <- model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df)
 options(na.action='na.pass')
 
 # if (log_model == "nobeta") {
@@ -54,4 +53,4 @@ predictions_df <-  df
 predictions_df$prob_min <- res_min
 predictions_df$prob_1se <- res_1se
 
-save(predictions_df, file = output)
+write.table(predictions_df, file = output, sep='\t', quote=FALSE)
