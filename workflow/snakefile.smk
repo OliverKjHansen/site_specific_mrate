@@ -40,10 +40,10 @@ rule all:
                 "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",
                 #"../output/PossibleVariants/{mutationtype}_possible_lof.tsv",
-                #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",
-                "../output/Predictions/{mutationtype}_predictions.tsv"
+                #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",]
                 ],mutationtype = mutationtypes),
-        expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes,logmodel = logmodels),
+        expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
+                "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
         expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
@@ -124,7 +124,7 @@ rule training_models:
 #         downsample = "1"
 #     output:
 #         dummy_file = "../output/PossibleVariants/{mutationtype}_empty.txt",
-#         possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.tsv"
+#         possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.tsv.gz"
 #     shell:"""
 #     touch {output.dummy_file}
 #     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {output.dummy_file} -a {input.annotationfile} -p {input.kmerpartition} -d {params.downsample} -l --verbose | gzip > {output.possible_mutations}
@@ -162,20 +162,20 @@ rule training_models:
 
 rule Prediction:
     input:
-        model = "../output/models/{mutationtype}_nobeta_LassoBestModel.RData",
+        model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
         annotated_lof = lambda wc: annotated_variants_path[wc.mutationtype]
         #pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
     resources:
-        threads=2,
+        threads=4,
         time=180,
-        mem_mb=15000 
+        mem_mb=100000 
     conda: "envs/callrv2.yaml"
     params: 
-        levels = "../output/levels/{mutationtype}_nobeta_levels.RData"# can do log_model here??
+        levels = "../output/levels/{mutationtype}_{logmodel}_levels.RData"# can do log_model here??
     output:
-        predictions = "../output/Predictions/{mutationtype}_predictions.tsv"
+        predictions = "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"
     shell:"""
-    Rscript scripts/predictions.R {input.annotated_lof} {input.model} {params.levels} {output.predictions}
+    Rscript scripts/predictions.R {input.annotated_lof} {input.model} {params.levels} {wildcards.logmodel} {output.predictions}
     """
 
 #rule ScalePredictions 
