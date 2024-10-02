@@ -14,7 +14,7 @@ deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_
 }
 
 ####Kmerpapa crossvalidation
-penalty_values: [1,5,10] # also complexity
+penalty_values: [1,5,10,15,20] # also complexity
 alpha_values: [1,5] # aslo pseudo count
 
 #paths to possible Lof files 
@@ -32,8 +32,8 @@ A2T: "../../MakeLogRegInput/annotated_datasets/all_possible/A2T_GC_repli_recomb_
 C2A: "../../MakeLogRegInput/annotated_datasets/all_possible/C2A_GC_repli_recomb_meth_0_long_hg38.dat.gz", 
 C2G: "../../MakeLogRegInput/annotated_datasets/all_possible/C2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 C2T: "../../MakeLogRegInput/annotated_datasets/all_possible/C2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-insertion: "../output/PossibleVariants/insertion_possible_lof.tsv",
-deletion: "../output/PossibleVariants/deletion_possible_lof.tsv"
+insertion: "../output/PossibleVariants/insertion_possible_lof.tsv.gz",
+deletion: "../output/PossibleVariants/deletion_possible_lof.tsv.gz"
 }
 
 mut_translations: {A2C: ["snv","",""],
@@ -52,7 +52,7 @@ indel: "--before_after 4 3"
 
 #xcxc|x|cxc # how indel_kmers are decidedd
 
-logmodel: ["nobeta"]
+logmodel: ["nobeta","intercept"]
 
 #gfeatures: ["repli","GC_1k","recomb_decode","CpG_I","meth"]
 

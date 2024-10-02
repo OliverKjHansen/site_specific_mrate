@@ -21,7 +21,7 @@ include: "rules/kmerpapa_crossvalidation.smk"
 penalty = config["penalty_values"]
 alpha = config["alpha_values"]
 # haploinsufficiency analysis 
-#include: "rules/haploinsufficiency.smk"
+include: "rules/haploinsufficiency.smk"
 # compare models analysis
 #include: "rules/compare_models.smk"
 
@@ -43,7 +43,8 @@ rule all:
                 #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",]
                 ],mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
-                "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
+                "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
+                "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
         expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)

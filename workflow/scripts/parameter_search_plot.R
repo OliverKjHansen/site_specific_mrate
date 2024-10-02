@@ -14,7 +14,9 @@ output_plot <-args[3]
 output_parameters <- args[4]
 
 df <- read.table(file = inputfile, header = TRUE) %>% 
-  mutate(minimum = if_else(LL_test == min(LL_test), TRUE, FALSE)) #have to check if it is loglikelihood  or negative logloikelihood
+  mutate(minimum = if_else(LL_test == min(LL_test), TRUE, FALSE),#have to check if it is loglikelihood  or negative logloikelihood
+  P = as.factor(P),
+  alpha = as.factor(alpha))
 
 # df %>% 
 #   ggplot(mapping = aes(x = alpha, y = LL_test, colour = minimum)) +
@@ -23,15 +25,15 @@ df <- read.table(file = inputfile, header = TRUE) %>%
 #   ggtitle(mutationtype) +
 #   theme(plot.title = element_text(hjust = 0.5))
   
-# df %>% 
-#   ggplot(mapping = aes(x = P, y = LL_test, colour = minimum)) +
-#   geom_point() + 
-#   theme_pubr() + 
-#   ggtitle(mutationtype) +
-#   theme(plot.title = element_text(hjust = 0.5))
+line_plot <- df %>% 
+  ggplot(mapping = aes(x = P, y = LL_test, colour = alpha)) +
+  geom_line(aes(group = alpha)) + geom_point() + 
+  theme_pubr() + 
+  ggtitle(mutationtype) +
+  theme(plot.title = element_text(hjust = 0.5))
 
 grid_plot <- df %>% 
-  ggplot(mapping = aes(x = P, y = alpha, colour = minimum)) + #maybe change?
+  ggplot(mapping = aes(x = alpha, y = P, colour = minimum)) + #maybe change?
   geom_point() + 
   theme_pubr(legend = "right") + 
   ggtitle(mutationtype) +
@@ -51,8 +53,9 @@ best_set <- df %>% filter(minimum == TRUE) %>% select(c("alpha","P"))
 write_delim(best_set, file = output_parameters, col_names = FALSE)
 
 
-ggsave(sub(".pdf", ".svg", output_plot), plot = grid_plot) # as svg
-ggsave(sub(".pdf", ".jpg", output_plot), plot = grid_plot) #as jpeg
+ggsave(sub(".pdf", ".svg", output_plot), plot = line_plot) # as svg
+ggsave(sub(".pdf", ".jpg", output_plot), plot = line_plot) #as jpeg
+ggsave(output_plot, plot = line_plot, width = 10, height = 10) # as pdf
 ggsave(output_plot, plot = grid_plot, width = 10, height = 10) # as pdf
 
 

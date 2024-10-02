@@ -89,7 +89,7 @@ rule FindingBestParameter:
     output: 
         parameter_grid = "../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_parametergridfile.txt",
         r_plot = "plots/KmerPaPa/{mutationtype}_penalty_and_alpha_loglike.pdf",
-        best_parameters = "../output/KmerPaPa/best_parameters/{mutationtype}_penalty_and_alpha_best_parameters.txt"
+        best_parameters = "../output/KmerPaPa/best_parameters/{mutationtype}_penalty_and_alpha_best_parameters.txt" # just to output to BestKmerPaPa
     shell:"""
     awk 'FNR>1 || NR==1' {input.crossvalidation} > {output.parameter_grid}
     Rscript scripts/parameter_search_plot.R {wildcards.mutationtype} {output.parameter_grid} {output.r_plot} {output.best_parameters}
@@ -99,7 +99,7 @@ rule BestKmerPaPa:
     input:
         backgroundcount =lambda wc: "../output/KmerCount/{}_unmutated_kmers.tsv".format(mut_translations[wc.mutationtype][0]), ##i tried to be smart but it took me 20 mintutes to realise i had to put the 0-index here 
         kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv",
-        best_parameters = "../output/KmerPaPa/best_parameters/{mutationtype}_penalty_and_pseudo_best_parameters.txt" # kinda of working as a dummy
+        best_parameters = "../output/KmerPaPa/best_parameters/{mutationtype}_penalty_and_alpha_best_parameters.txt" # kinda of working as a dummy
     resources:
         threads=8,
         time=480,
