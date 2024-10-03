@@ -33,7 +33,7 @@ load(levelsval)
 new_df <- df[c("context","repli","GC_1k","recomb_decode","meth","CpG_I")] # make this a input/parameter
 
 # x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df)
-# options(na.action='na.pass')
+options(na.action='na.pass')
 
 if (log_model == "nobeta") {
 x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df) # no intercepts
@@ -50,8 +50,8 @@ res_1se <- predict(cv.fit, newx = x, s = "lambda.1se", type = "response")
 #vec2 <- as.vector(unique(levelsval))
 #unique(vec2[! vec2 %in% vec1])
 
-predictions_df <-  df
-predictions_df$prob_min <- res_min
-predictions_df$prob_1se <- res_1se
+#predictions_df <-  df
+df$prob_min <- res_min
+df$prob_1se <- res_1se
 
-write.table(predictions_df, file = output, sep='\t', quote=FALSE)
+write.table(df, file = output, sep='\t', quote=FALSE, row.names = FALSE)

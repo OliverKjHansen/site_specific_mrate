@@ -1,34 +1,22 @@
 
-rule all:
+rule AnnotatingTranscripts:
     input:
-        expand(["output/haploinsufficiency/merged_predictionfiles.csv",
-                'output/haploinsufficiency/merged_data.csv',
-                'output/haploinsufficiency/expected_n_mutations.csv'],muttype = mut_type)
-
-
-
-rule RData2CSV:
-    input:
-        predictions = "output/{muttype}_predictions.RData"
-    output:
-        csv = "output/csvformat/{muttype}_predictions.csv"
-    shell:"""
-    Rscript scripts/r2csv.R {input.predictions}
-    """
-
-rule creating_expected_counts:
-    input:
-        transcripts = "files/gencode_v42_LoF_SNV_w_transcript_collapsed.csv",
-        merged_predictionfiles = expand("output/csvformat/{muttype}_predictions.csv", muttype = mut_type)
+        transcript_file = "../resources/test_cds.bed", # placeholder
+        predictions = "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
+        header_file = "../resources/header_file.txt"
     resources:
-        threads=2,
-        time=450,
-        mem_mb=50000 
-    output:
-        merged_predictionfiles = "output/haploinsufficiency/merged_predictionfiles.csv",
-        output_csv_file = 'output/haploinsufficiency/merged_data.csv',
-        transcriptid_csv_file = 'output/haploinsufficiency/expected_n_mutations.csv'
+        threads=4,
+        time=120,
+        mem_mb=5000 
+    conda: "../envs/bedtools.yaml"
+    output: 
+        shorten_file = temp("../output/Transcripts/{mutationtype}_{logmodel}_shorten.tsv"), 
+        transcripts_predictions_tmp =  temp("../output/Transcripts/{mutationtype}_{logmodel}_predictions_tmp.tsv"), # should be able to do this in on go
+        transcripts_predictions =  "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv"
     shell:"""
-    awk 'FNR>1 || NR==1' {input.merged_predictionfiles} >> {output.merged_predictionfiles} 
-    python scripts/merging_df.py {output.merged_predictionfiles} {input.transcripts} 
+    awk -v OFS="\\t" '{{print $1,$2,$3,$13}}' {input.transcript_file} > {output.shorten_file}
+    awk -v OFS="\\t" '{{ $2=$2-1"\\t"$2; print }}' {input.predictions} > {output.transcripts_predictions_tmp}
+    head -n 1 {output.transcripts_predictions_tmp} > {output.transcripts_predictions}
+    sed -i '1 s/$/\\tchrom\\tint_start\\tint_end\\ttranscript_id/' {output.transcripts_predictions}
+    bedtools intersect -wo -a {output.transcripts_predictions_tmp} -b {output.shorten_file} | awk -v OFS="\\t" '{{$NF=""; print $0}}' - >> {output.transcripts_predictions}
     """
