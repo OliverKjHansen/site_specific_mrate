@@ -3,11 +3,13 @@ configfile: "../config/config.yaml"
 mutationtypes = config["mutationtype"]
 variationtypes = config["variationtype"]
 
+#wildcards-
 paths = config["mutationfiles"] # maybe do this smarter so the inputdata is not in the configfile
 logmodels = config["logmodel"] # intercept or no_intercept(nobeta)
 models = config["models"]
 possible_variants_path = config["possible_variants_path"] ##should be removed when i can generate all the files myself
 annotated_variants_path = config["annotated_variants_path"] #should be removed when i can generate all the files myself
+chromosomes = config["chromosomes"]
 
 #gencode = config["gencode"]
 genome2bit = config["hg382bit"]
@@ -42,6 +44,8 @@ rule all:
                 #"../output/PossibleVariants/{mutationtype}_possible_lof.tsv",
                 #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",]
                 ],mutationtype = mutationtypes),
+        expand(["../output/PossibleVariants/variants/{chromosomes}_variants.txt",
+                "../output/PossibleVariants/{mutationtype}_possible_lof.txt"], chromosomes = chromosomes, mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
                 "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
@@ -106,6 +110,40 @@ rule training_models:
         model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
     shell:"""
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
+    """
+
+rule possiblemutationsprchromosome:
+    input:
+        transcript_file = "../resources/gencode.v42.annotation.gff3.gz", # change to a config variable
+        ref_genome = genome2bit
+    resources:
+        threads=4,
+        time=120,
+        mem_mb=5000
+    output:
+        transcript_pr_chromosome = "../output/PossibleVariants/transcripts/{chromosomes}_transcripts.txt",
+        possible_mutations_pr_chromosome = "../output/PossibleVariants/variants/{chromosomes}_variants.txt"
+    shell:"""
+    gunzip --stdout {input.transcript_file} | awk '$1 == "{wildcards.chromosomes}"' - | /home/oliver/.cargo/bin/genovo --action transform --gff3 - --genomic-regions {output.transcript_pr_chromosome}
+    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.ref_genome} > {output.possible_mutations_pr_chromosome}
+    """
+
+rule possiblemutationsprmutationtype:
+    input:
+        possible_mutations_pr_chromosome = expand(["../output/PossibleVariants/variants/{chromosomes}_variants.txt"], chromosomes = chromosomes)
+    resources:
+        threads=4,
+        time=120,
+        mem_mb=5000
+    params: 
+        ref = lambda wc: list(wc.mutationtype)[0],
+        alt = lambda wc: list(wc.mutationtype)[2]
+    output:
+        chromosome_assembly = temp("../output/PossibleVariants/variants/assembly_varaints_{mutationtype}.txt"),
+        possible_mutations_pr_chromosome = "../output/PossibleVariants/{mutationtype}_possible_lof.txt"
+    shell:"""
+    cat {input.possible_mutations_pr_chromosome} > {output.chromosome_assembly}
+    cat {output.chromosome_assembly} |'$3 == {params.ref} && $4 == {params.alt} > {output.possible_mutations_pr_chromosome}
     """
 #onlyworks for indels. THis is meant to generate the possible lof indels
 # rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy touch indel for generating indels because they are generated in the annotation step

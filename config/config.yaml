@@ -2,6 +2,8 @@
 #mutationtype: ["insertion", "deletion"]
 mutationtype: ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
 variationtype: ["snv","indel"]
+chromosomes: ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12",
+"chr13","chr14","chr15","chr16","chr17","chr18", "chr19","chr20","chr21","chr22"]
 #path to diferent mutation files
 mutationfiles: {A2C: "../../MakeLogRegInput/annotated_datasets/combined6/A2C_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
 A2G: "../../MakeLogRegInput/annotated_datasets/combined6/A2G_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
