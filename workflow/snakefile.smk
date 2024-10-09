@@ -41,11 +41,11 @@ rule all:
                 #"plots/KmerPaPa/{mutationtype}_penalty_and_pseudo_loglike.pdf",s
                 "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",
-                #"../output/PossibleVariants/{mutationtype}_possible_lof.tsv",
                 #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",]
                 ],mutationtype = mutationtypes),
-        expand(["../output/PossibleVariants/variants/{chromosomes}_variants.txt",
-                "../output/PossibleVariants/{mutationtype}_possible_lof.txt"], chromosomes = chromosomes, mutationtype = mutationtypes),
+        expand(["../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz",
+                "../output/PossibleMutations/all_chromosomes_possible.txt.gz",
+                "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.gz"], chromosomes = chromosomes, mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
                 "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
@@ -112,7 +112,7 @@ rule training_models:
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
 
-rule possiblemutationsprchromosome:
+rule PossibleMutationChromosome:
     input:
         transcript_file = "../resources/gencode.v42.annotation.gff3.gz", # change to a config variable
         ref_genome = genome2bit
@@ -121,83 +121,58 @@ rule possiblemutationsprchromosome:
         time=120,
         mem_mb=5000
     output:
-        transcript_pr_chromosome = "../output/PossibleVariants/transcripts/{chromosomes}_transcripts.txt",
-        possible_mutations_pr_chromosome = "../output/PossibleVariants/variants/{chromosomes}_variants.txt"
+        transcript_pr_chromosome = temp("../output/PossibleMutations/chr/{chromosomes}_transcripts.txt"),
+        possible_mutations_pr_chromosome = "../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz"
     shell:"""
     gunzip --stdout {input.transcript_file} | awk '$1 == "{wildcards.chromosomes}"' - | /home/oliver/.cargo/bin/genovo --action transform --gff3 - --genomic-regions {output.transcript_pr_chromosome}
-    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.ref_genome} > {output.possible_mutations_pr_chromosome}
+    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.ref_genome} | gzip > {output.possible_mutations_pr_chromosome}
     """
-
-rule possiblemutationsprmutationtype:
+rule PossibleMutations:
     input:
-        possible_mutations_pr_chromosome = expand(["../output/PossibleVariants/variants/{chromosomes}_variants.txt"], chromosomes = chromosomes)
+        possible_mutations_pr_chromosome = expand(["../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz"], chromosomes = chromosomes)
+    resources:
+        threads=4,
+        time=120,
+        mem_mb=20000
+    output:
+        possible_mutations = "../output/PossibleMutations/all_chromosomes_possible.txt.gz"
+    shell:"""
+    cat {input.possible_mutations_pr_chromosome} > {output.possible_mutations}
+    """
+rule PossibleLoF:
+    input:
+        possible_mutations = "../output/PossibleMutations/all_chromosomes_possible.txt.gz"    
+    resources:
+        threads=4,
+        time=120,
+        mem_mb=25000
+    output:
+        possible_LoF = "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.gz"
+    shell:"""
+    python scripts/splitting_to_mutationtypes {input.possible_mutations} {wildcards.mutationtype} > {output.possible_LoF}
+    """
+#add the partion-flag -p kmerpap_output when i decide to run it. # this only annotates snvs
+rule AnnotatedPossibleMutations: # indels are alrady annotated 
+    input: 
+        ref_genome = genome2bit,
+        kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
+        possible_lof = lambda wc: possible_variants_path[wc.mutationtype], # hardcoded, should at some point be the output from the GeneratePossible rule
+        callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
+        annotationfile= annotation_parameters #I could make this myself 
     resources:
         threads=4,
         time=120,
         mem_mb=5000
+    #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
-        ref = lambda wc: list(wc.mutationtype)[0],
-        alt = lambda wc: list(wc.mutationtype)[2]
+        glorific = glorific_path, # when conda compatibility fixed remive this
+        var_type = lambda wc: mut_translations[wc.mutationtype][0],
+        downsample = "0"
     output:
-        chromosome_assembly = temp("../output/PossibleVariants/variants/assembly_varaints_{mutationtype}.txt"),
-        possible_mutations_pr_chromosome = "../output/PossibleVariants/{mutationtype}_possible_lof.txt"
+        annotated_mutations = "../output/AnnotatedPossibleMutations/{mutationtype}_possible_lof_annotated.tsv"
     shell:"""
-    cat {input.possible_mutations_pr_chromosome} > {output.chromosome_assembly}
-    cat {output.chromosome_assembly} |'$3 == {params.ref} && $4 == {params.alt} > {output.possible_mutations_pr_chromosome}
+    {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose > {output.annotated_mutations}
     """
-#onlyworks for indels. THis is meant to generate the possible lof indels
-# rule GeneratePossibleMutations: # implement Genovo for snvs maybe make a dummy touch indel for generating indels because they are generated in the annotation step
-#     input: 
-#         ref_genome = genome2bit,
-#         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
-#         callability = "../resources/cds_42.bed", # bedfile of transripts so we only annotated variants in codingregions. everypositions is a possible frameshift and all frameshift are lof
-#         annotationfile= annotation_parameters #I could make this myself 
-#     resources:
-#         threads=4,
-#         time=120,
-#         mem_mb=5000
-#     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
-#     params: 
-#         glorific = glorific_path, # when conda compatibility fixed remive this
-#         var_type = lambda wc: mut_translations[wc.mutationtype][0],
-#         downsample = "1"
-#     output:
-#         dummy_file = "../output/PossibleVariants/{mutationtype}_empty.txt",
-#         possible_mutations = "../output/PossibleVariants/{mutationtype}_possible_lof.tsv.gz"
-#     shell:"""
-#     touch {output.dummy_file}
-#     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {output.dummy_file} -a {input.annotationfile} -p {input.kmerpartition} -d {params.downsample} -l --verbose | gzip > {output.possible_mutations}
-#     """
-
-#   sort -k1,1 -o {output.possible_mutations} {output.possible_mutations}
-#   gzip 
-#   add a gunzip statement after the sorting 
-#   remember to sort the output or else the whole pipeline will run again
-
-#/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific indel files/hg38.2bit ../site_specific_mrate/resources/cds_42.bed empty -a ../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt -d 1 -l --verbose 
-
-#add the partion-flag -p kmerpap_output when i decide to run it. # this only annotates snvs
-# rule AnnotatePossibleMutations: # indels are alrady annotated 
-#     input: 
-#         ref_genome = genome2bit,
-#         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
-#         possible_lof = lambda wc: possible_variants_path[wc.mutationtype], # hardcoded, should at some point be the output from the GeneratePossible rule
-#         callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
-#         annotationfile= annotation_parameters #I could make this myself 
-#     resources:
-#         threads=4,
-#         time=120,
-#         mem_mb=5000
-#     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
-#     params: 
-#         glorific = glorific_path, # when conda compatibility fixed remive this
-#         var_type = lambda wc: mut_translations[wc.mutationtype][0],
-#         downsample = "0"
-#     output:
-#         annotated_mutations = "../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv"
-#     shell:"""
-#     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose > {output.annotated_mutations}
-#     """
 
 rule Prediction:
     input:
