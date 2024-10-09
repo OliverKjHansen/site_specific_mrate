@@ -25,7 +25,7 @@ def splitting_to_indels(file, mutationtype):
         for line in f:
             chrom, pos, ref, alt, transcript, outcome, sequence = line.split("\n")[0].split("\t")[0:7]
             if len(alt) > 1:
-                if transcript == "FrameshiftIndel":
+                if outcome == "FrameshiftIndel":
                     print(line.split("\n")[0])
 
 
@@ -36,11 +36,11 @@ def splitting_to_snps(file, mutationtype):
         for line in f:
             chrom, pos, ref, alt, transcript, outcome, sequence = line.split("\n")[0].split("\t")[0:7]
             if (ref == mut_ref) and (alt == mut_alt):
-                if (transcript == "SpliceSite") and  (transcript == "Nonsense")
+                if (outcome == "SpliceSite") or (outcome == "Nonsense"):
                     print(line.split("\n")[0])
                 #print(chrom,pos,ref,alt, sep ="\t")
             if (ref == base_table[mut_ref] and alt == base_table[mut_alt]):
-                if (transcript == "SpliceSite") and  (transcript == "Nonsense")
+                if (outcome == "SpliceSite") or (outcome == "Nonsense"):
                     print(line.split("\n")[0])
                 #print(chrom,pos, ref, alt, sep ="\t")
                 #print(chrom,pos,ref, alt, base_table[ref], base_table[alt])

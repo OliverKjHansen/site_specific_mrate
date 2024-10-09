@@ -40,17 +40,15 @@ rule all:
                 #"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_parametergridfile.txt",
                 #"plots/KmerPaPa/{mutationtype}_penalty_and_pseudo_loglike.pdf",s
                 "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
-        expand(["../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz",
-                #"../output/AnnotatedPossibleVariants/{mutationtype}_possible_lof_annotated.tsv",]
-                ],mutationtype = mutationtypes),
+        expand(["../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"],mutationtype = mutationtypes),
         expand(["../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz",
                 "../output/PossibleMutations/all_chromosomes_possible.txt.gz",
-                "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.gz"], chromosomes = chromosomes, mutationtype = mutationtypes),
+                "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.txt"], chromosomes = chromosomes, mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
                 "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
-        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models),
-        expand(["../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
+        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData", 
+                "../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
 
@@ -92,7 +90,7 @@ rule AnnotateMutations: # we annotate existing mutations and generate a dataset 
         downsample = "0.002",
         annotationfile= annotation_parameters #I could make this myself 
     output:
-        annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz"
+        annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"
     shell:"""
     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.mutations} -a {params.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose | gzip > {output.annotated_mutations}
     """
@@ -125,8 +123,9 @@ rule PossibleMutationChromosome:
         possible_mutations_pr_chromosome = "../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz"
     shell:"""
     gunzip --stdout {input.transcript_file} | awk '$1 == "{wildcards.chromosomes}"' - | /home/oliver/.cargo/bin/genovo --action transform --gff3 - --genomic-regions {output.transcript_pr_chromosome}
-    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.ref_genome} | gzip > {output.possible_mutations_pr_chromosome}
+    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.ref_genome} | tail -n +3 - | gzip > {output.possible_mutations_pr_chromosome}
     """
+
 rule PossibleMutations:
     input:
         possible_mutations_pr_chromosome = expand(["../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz"], chromosomes = chromosomes)
@@ -139,6 +138,7 @@ rule PossibleMutations:
     shell:"""
     cat {input.possible_mutations_pr_chromosome} > {output.possible_mutations}
     """
+
 rule PossibleLoF:
     input:
         possible_mutations = "../output/PossibleMutations/all_chromosomes_possible.txt.gz"    
@@ -147,10 +147,11 @@ rule PossibleLoF:
         time=120,
         mem_mb=25000
     output:
-        possible_LoF = "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.gz"
+        possible_LoF = "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.txt"
     shell:"""
-    python scripts/splitting_to_mutationtypes {input.possible_mutations} {wildcards.mutationtype} > {output.possible_LoF}
+    python scripts/splitting_to_mutationtypes.py {input.possible_mutations} {wildcards.mutationtype} > {output.possible_LoF}
     """
+
 #add the partion-flag -p kmerpap_output when i decide to run it. # this only annotates snvs
 rule AnnotatedPossibleMutations: # indels are alrady annotated 
     input: 
