@@ -30,7 +30,9 @@ line_plot <- df %>%
   geom_line(aes(group = alpha)) + geom_point() + 
   theme_pubr() + 
   ggtitle(mutationtype) +
-  theme(plot.title = element_text(hjust = 0.5))
+  theme(plot.title = element_text(hjust = 0.5)) +
+  xlab("Penalty (complexity)") +
+  ylab("-2*LogLikelihood") +
 
 grid_plot <- df %>% 
   ggplot(mapping = aes(x = alpha, y = P, colour = minimum)) + #maybe change?

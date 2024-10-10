@@ -42,15 +42,17 @@ rule all:
                 "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"],mutationtype = mutationtypes),
         expand(["../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz",
-                "../output/PossibleMutations/all_chromosomes_possible.txt.gz",
-                "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.txt"], chromosomes = chromosomes, mutationtype = mutationtypes),
+                "../output/PossibleMutations/LoF/{mutationtype}_possibleLoF.txt",
+                "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"], chromosomes = chromosomes, mutationtype = mutationtypes),
         expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
                 "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
-                "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
+                "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv",
+                "../output/Transcripts/{mutationtype}_{logmodel}_predictions_small.tsv",
+                "../output/Transcripts/expected/expected_transcript_1se_{logmodel}.tsv",
+                "../output/Transcripts/expected/expected_transcript_min_{logmodel}.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
         expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData", 
                 "../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
-
 
 # need to fix the sorting and future filterong of files or do some magic with touching output if i refilter and sort everytime??
 # rule SortingFilesAndFilter: ## it is easier to do as a rule because snakemake restarts everyting if nit
@@ -145,40 +147,43 @@ rule PossibleLoF:
     resources:
         threads=4,
         time=120,
-        mem_mb=25000
+        mem_mb=10000
     output:
-        possible_LoF = "../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.txt"
+        unfiltered = temp("../output/PossibleMutations/LoF/{mutationtype}_possibleLoF_unfiltered.txt"),
+        possibleLoF = "../output/PossibleMutations/LoF/{mutationtype}_possibleLoF.txt"
     shell:"""
-    python scripts/splitting_to_mutationtypes.py {input.possible_mutations} {wildcards.mutationtype} > {output.possible_LoF}
+    python scripts/splitting_to_mutationtypes.py {input.possible_mutations} {wildcards.mutationtype} > {output.unfiltered}
+    awk '{{print $1,$2,$3,$4}}' {output.unfiltered} | sort -k1,1 -k2,2n | uniq > {output.possibleLoF}
     """
+#"../output/PossibleMutations/LoF/{mutationtype}_possible_LoF.txt"
 
-#add the partion-flag -p kmerpap_output when i decide to run it. # this only annotates snvs
+#possible_lof = lambda wc: possible_variants_path[wc.mutationtype], old
 rule AnnotatedPossibleMutations: # indels are alrady annotated 
     input: 
         ref_genome = genome2bit,
         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
-        possible_lof = lambda wc: possible_variants_path[wc.mutationtype], # hardcoded, should at some point be the output from the GeneratePossible rule
+        possible_lof = "../output/PossibleMutations/LoF/{mutationtype}_possibleLoF.txt",
         callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
         annotationfile= annotation_parameters #I could make this myself 
     resources:
         threads=4,
         time=120,
-        mem_mb=5000
+        mem_mb=20000
     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
         glorific = glorific_path, # when conda compatibility fixed remive this
         var_type = lambda wc: mut_translations[wc.mutationtype][0],
         downsample = "0"
     output:
-        annotated_mutations = "../output/AnnotatedPossibleMutations/{mutationtype}_possible_lof_annotated.tsv"
+        annotated_mutations = "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"
     shell:"""
     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose > {output.annotated_mutations}
     """
-
+#annotated_lof = lambda wc: annotated_variants_path[wc.mutationtype] # old
 rule Prediction:
     input:
         model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
-        annotated_lof = lambda wc: annotated_variants_path[wc.mutationtype]
+        annotated_lof = "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"
         #pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
     resources:
         threads=4,
