@@ -15,8 +15,8 @@ alpha = config["alpha_values"]
 
 rule BackgroundKmerCount:
     input:
-        regions = genomebedfile, # might be a placeholder # maybe add blacklist filtering
-        ref_genome = genome2bit #change to ref_genome
+        callability = genomebedfile,
+        refgenome = genome2bit 
     resources:
         threads=4,
         time=120,
@@ -27,15 +27,16 @@ rule BackgroundKmerCount:
     output: 
         backgroundcount = "../output/KmerCount/{variationtype}_unmutated_kmers.tsv"
     shell:"""
-        kmer_counter background --bed {input.regions} {params.bck_kmer} {input.ref_genome} > {output.backgroundcount}
+    kmer_counter background --bed {input.callability} {params.bck_kmer} {input.refgenome} > {output.backgroundcount}
     """
 
 #Where the mutation file should be vcf-like text file where the first four columns are: Chromosome, Position, Ref_Allele, Alt_Allele
+#fitler out denovo with the strict file. 
 rule MutationsKmerCount:
     input:
-        mutationfile = "../resources/{mutationtype}denovo.tsv", ##change later #placeholder
-        regions = genomebedfile,
-        ref_genome = genome2bit
+        mutationfile = lambda wc: mutationfiles[wc.mutationtype],  ##change later #placeholder
+        callability = genomebedfile,
+        refgenome = genome2bit
     resources:
         threads=1,
         time=60,
@@ -43,12 +44,14 @@ rule MutationsKmerCount:
     params: 
         var_type = lambda wc: mut_translations[wc.mutationtype][0], #this check if the mutationtype is a indel or snv
         sample = lambda wc: mut_translations[wc.mutationtype][1], # too sample, only relevant for indels
-        breaktype = lambda wc:mut_translations[wc.mutationtype][2] #this determind how the breakpoit is modellen. Only importent for indels. should be empty for snv #sets the radius from the configfile
+        breaktype = lambda wc:mut_translations[wc.mutationtype][2] #this determind how the breakpoint is modeled. Only importent for indels. should be empty for snv #sets the radius from the configfile
     conda: "../envs/kmercounter.yaml"
     output: 
+        filtered_denovo = temp("../output/Filtered/{mutationtype}denovo_filtered.tsv"),
         kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
     shell:"""
-        kmer_counter {params.var_type} {params.sample} -r 4 {input.ref_genome} {input.mutationfile} {params.breaktype} > {output.kmercount}
+    awk -v OFS="\\t" '{{print $1,$2-1,$2,$3,$4}}' {input.mutationfile} | bedtools intersect -a - -b {input.callability} | awk -v OFS="\\t" '{{print $1,$3,$4,$5}}' > {output.filtered_denovo}
+    kmer_counter {params.var_type} {params.sample} -r 4 {input.refgenome} {input.mutationfile} {params.breaktype} > {output.kmercount}
     """
 #--reverse_complement_method middle??
 

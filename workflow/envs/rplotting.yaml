@@ -7,3 +7,4 @@ dependencies:
   - r-plotly
   - r-ggpubr
   - r-svglite
+  - r-scico

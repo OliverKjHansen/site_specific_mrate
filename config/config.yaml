@@ -2,23 +2,22 @@
 #mutationtype: ["insertion", "deletion"]
 mutationtype: ["A2C", "A2G", "A2T", "C2A", "C2G", "C2T", "insertion", "deletion"]
 variationtype: ["snv","indel"]
-chromosomes: ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12",
-"chr13","chr14","chr15","chr16","chr17","chr18", "chr19","chr20","chr21","chr22"]
+chromosomes: ["chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12", "chr13","chr14","chr15","chr16","chr17","chr18", "chr19","chr20","chr21","chr22"]
 # check how many chromosome other species have
 #path to diferent mutation files
-mutationfiles: {A2C: "../../MakeLogRegInput/annotated_datasets/combined6/A2C_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
-A2G: "../../MakeLogRegInput/annotated_datasets/combined6/A2G_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
-A2T: "../../MakeLogRegInput/annotated_datasets/combined6/A2T_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
-C2A: "../../MakeLogRegInput/annotated_datasets/combined6/C2A_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz", 
-C2G: "../../MakeLogRegInput/annotated_datasets/combined6/C2G_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
-C2T: "../../MakeLogRegInput/annotated_datasets/combined6/C2T_GC_repli_recomb_meth_0.002_all3_long_hg38.dat.gz",
-insertion: "../../MakeLogRegInput/annotated_datasets/combined6/insertion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz",
-deletion: "../../MakeLogRegInput/annotated_datasets/combined6/deletion_GC_repli_recomb_meth_0.002_long_hg38.dat.gz"
+mutationfiles: {A2C: "../resources/mutations/dnm/a2c_dnm.tsv",
+A2G: "../resources/mutations/dnm/a2g_dnm.tsv",
+A2T: "../resources/mutations/dnm/a2t_dnm.tsv",
+C2A: "../resources/mutations/dnm/c2a_dnm.tsv", 
+C2G: "../resources/mutations/dnm/c2g_dnm.tsv",
+C2T: "../resources/mutations/dnm/c2t_dnm.tsv",
+insertion: "../resources/mutations/dnm/insertion_dnm.tsv",
+deletion: "../resources/mutations/dnm/deletion_dnm.tsv"
 }
 
 ####Kmerpapa crossvalidation
 penalty_values: [1,5,10,15,20] # also complexity
-alpha_values: [1,5] # aslo pseudo count
+alpha_values: [1] # also pseudo count
 
 #paths to possible Lof files 
 possible_variants_path: {A2C: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2C.gencode_v42_LoF_SNVs_sorted.txt",
@@ -36,7 +35,9 @@ C2A: "../../MakeLogRegInput/annotated_datasets/all_possible/C2A_GC_repli_recomb_
 C2G: "../../MakeLogRegInput/annotated_datasets/all_possible/C2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 C2T: "../../MakeLogRegInput/annotated_datasets/all_possible/C2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
 insertion: "../output/PossibleVariants/insertion_possible_lof.tsv.gz",
-deletion: "../output/PossibleVariants/deletion_possible_lof.tsv.gz"
+deletion: "../output/PossibleVariants/deletion_possible_lof.tsv.gz",
+insertion: "",
+deletion: ""
 }
 
 mut_translations: {A2C: ["snv","",""],
@@ -69,5 +70,9 @@ models: ["kmer", "genomic","both"] # have to find another name for the full/comp
 #gencode : "../resources/gencode.v44.annotation.gtf.gz"
 gencode: "../resources/gencode.v42.annotation.gtf.gz"
 hg382bit:  "../resources/hg38.2bit"
-hg38bedfile: "../resources/hg38.bed" ## this should change or be double checked. it was just somethig i had laying around
+hg38bedfile_strict: "../resources/20160622.allChr.mask_noXY.bed" ## this should change or be double checked. it was just somethig i had laying around
+hg38bedfile_full: "../resources/hg38.bed"
 annotation_parameters: ../../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt # hardcoded at the moment
+
+# cd ~/nnPib2021/group_POB && echo "files ..." && chmod -f -R u+rw,g+rw,o+rw . 
+# cd ~/nnPib2021/group_POB && echo "dirs ..."  && find . -type d -exec chmod -f -s,o+rw {} \;

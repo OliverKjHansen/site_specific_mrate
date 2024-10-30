@@ -2,6 +2,7 @@ library("tidyverse")
 library("plotly")
 library("svglite")
 library("ggpubr")
+library("scico")
 # """""""
 # takes a parameter grid file and findes the best set of parameters while also plot the parameter search
 # """""""
@@ -27,16 +28,20 @@ df <- read.table(file = inputfile, header = TRUE) %>%
   
 line_plot <- df %>% 
   ggplot(mapping = aes(x = P, y = LL_test, colour = alpha)) +
-  geom_line(aes(group = alpha)) + geom_point() + 
+  geom_line(aes(group = alpha), size = 1) + geom_point(size = 2) + # change when final plot is ready
   theme_pubr() + 
   ggtitle(mutationtype) +
   theme(plot.title = element_text(hjust = 0.5)) +
-  xlab("Penalty (complexity)") +
+  scale_colour_scico_d(palette = 'roma', begin = 0.1, end = 0.75) + 
+  #xlab("Penalty (complexity)") +
+  xlab("Penalty") + 
   ylab("-2*LogLikelihood") +
+  #labs(color = "Alpha\n(pseudo count)") +
+  labs(color = "Alpha")
 
 grid_plot <- df %>% 
   ggplot(mapping = aes(x = alpha, y = P, colour = minimum)) + #maybe change?
-  geom_point() + 
+ geom_point(size = 3) +  # change when final plot is ready
   theme_pubr(legend = "right") + 
   ggtitle(mutationtype) +
   theme(plot.title = element_text(hjust = 0.5)) +

@@ -1,4 +1,4 @@
-rule AnnotatingTranscripts:
+rule AnnotatingTranscripts: #this step should proberly be made more smart
     input:
         transcript_file = "../resources/test_cds.bed", # placeholder
         predictions = "../output/DeleteLate_Predictions/{mutationtype}_{logmodel}_predictions.tsv", #change later

@@ -7,13 +7,14 @@ variationtypes = config["variationtype"]
 paths = config["mutationfiles"] # maybe do this smarter so the inputdata is not in the configfile
 logmodels = config["logmodel"] # intercept or no_intercept(nobeta)
 models = config["models"]
+mutationfiles = config["mutationfiles"]
 possible_variants_path = config["possible_variants_path"] ##should be removed when i can generate all the files myself
 annotated_variants_path = config["annotated_variants_path"] #should be removed when i can generate all the files myself
 chromosomes = config["chromosomes"]
 
 #gencode = config["gencode"]
 genome2bit = config["hg382bit"]
-genomebedfile = config["hg38bedfile"]
+genomebedfile = config["hg38bedfile_strict"]
 annotation_parameters = config["annotation_parameters"]
 
 bck_kmer= config["bck_kmer"]
@@ -77,37 +78,39 @@ rule all:
 # does not work with sex chromosomes
 rule AnnotateMutations: # we annotate existing mutations and generate a dataset of sampled from the full genome look at downsample parameter
     input: 
-        ref_genome = genome2bit,
-        kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change # for now it is prevoius kmerpapafiles
+        refgenome = genome2bit,
+        #kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change # for now it is prevoius kmerpapafiles
+        kmerpartition = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt",
         mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change Raw mutations
-        callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
+        callability = genomebedfile,
+        annotationfile = annotation_parameters
     resources:
         threads=4,
-        time=120,
+        time=180,
         mem_mb=5000
     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
         glorific = glorific_path, # when conda compatibility fixed remive this
         var_type = lambda wc: mut_translations[wc.mutationtype][0],
         downsample = "0.002",
-        annotationfile= annotation_parameters #I could make this myself 
     output:
         annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"
     shell:"""
     {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.mutations} -a {params.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose | gzip > {output.annotated_mutations}
     """
 
-rule training_models:
+rule TrainingModels:
     input: 
-        trainingfile = lambda wc: paths[wc.mutationtype] # hardcoded, should at some point be the output from the AnnotateMutations rule
-        #annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.dat.gz" 
+        #trainingfile = lambda wc: paths[wc.mutationtype] # hardcoded, should at some point be the output from the AnnotateMutations rule
+        annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz" 
     resources:
         threads=4,
         time=250,
         mem_mb=80000
     conda: "envs/callrv2.yaml"
+    params: #add a list of genomic features
     output:
-        model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
+        model = "../output/Models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
     shell:"""
     Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
@@ -115,7 +118,7 @@ rule training_models:
 rule PossibleMutationChromosome:
     input:
         transcript_file = "../resources/gencode.v42.annotation.gff3.gz", # change to a config variable
-        ref_genome = genome2bit
+        refgenome = genome2bit
     resources:
         threads=4,
         time=120,
@@ -160,11 +163,11 @@ rule PossibleLoF:
 #possible_lof = lambda wc: possible_variants_path[wc.mutationtype], old
 rule AnnotatedPossibleMutations: # indels are alrady annotated 
     input: 
-        ref_genome = genome2bit,
+        refgenome = genome2bit,
         kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
         possible_lof = "../output/PossibleMutations/LoF/{mutationtype}_possibleLoF.txt",
-        callability = genomebedfile, # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
-        annotationfile= annotation_parameters #I could make this myself 
+        callability = genomebedfile,
+        annotationfile= annotation_parameters 
     resources:
         threads=4,
         time=120,
