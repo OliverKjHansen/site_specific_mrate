@@ -1,6 +1,6 @@
 rule AnnotatingTranscripts: #this step should proberly be made more smart
     input:
-        transcript_file = "../resources/test_cds.bed", # placeholder
+        transcript_file = "../resources/gencode.v42.annotation.gff3.gz", # placeholder
         predictions = "../output/DeleteLate_Predictions/{mutationtype}_{logmodel}_predictions.tsv", #change later
     resources:
         threads=4,

@@ -53,15 +53,11 @@ rule MutationsKmerCount:
     awk -v OFS="\\t" '{{print $1,$2-1,$2,$3,$4}}' {input.mutationfile} | bedtools intersect -a - -b {input.callability} | awk -v OFS="\\t" '{{print $1,$3,$4,$5}}' > {output.filtered_denovo}
     kmer_counter {params.var_type} {params.sample} -r 4 {input.refgenome} {input.mutationfile} {params.breaktype} > {output.kmercount}
     """
-#--reverse_complement_method middle??
 
-#Maybe the there could be inserted some crossvalidation here some wehere
 s_pattern = {"A2C": "--super_pattern NNNNANNNN", "A2G": "--super_pattern NNNNANNNN", "A2T": "--super_pattern NNNNANNNN", 
             "C2A": "--super_pattern NNNNCNNNN", "C2G": "--super_pattern NNNNCNNNN", "C2T": "--super_pattern NNNNCNNNN", 
             "insertion": "", "deletion": ""} ## im too tired to do this in a smart way
 
-#remeber to insert the values for pseudo counts and crossvalidation- Right now it is just to see if it works
-#make it a loop that trains a grid for each mutation type
 rule KmerPaPaCrossvalidation:
     input:
         backgroundcount =lambda wc: "../output/KmerCount/{}_unmutated_kmers.tsv".format(mut_translations[wc.mutationtype][0]), ##i tried to be smart but it took me 20 mintutes to realise i had to put the 0-index here 
@@ -116,4 +112,5 @@ rule BestKmerPaPa:
         kmerpapa = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"
     shell:"""
     kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.super_pattern} --penalty_values {params.penalty} --pseudo_counts {params.alpha} -o {output.kmerpapa}
+    sed -i '1s/^/#/' {output.kmerpapa}
     """

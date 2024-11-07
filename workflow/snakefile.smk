@@ -45,7 +45,7 @@ rule all:
         expand(["../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz",
                 "../output/PossibleMutations/LoF/{mutationtype}_possibleLoF.txt",
                 "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"], chromosomes = chromosomes, mutationtype = mutationtypes),
-        expand(["../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
+        expand(["../output/Models/{mutationtype}_{logmodel}_LassoBestModel.RData",
                 "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv",
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv",
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions_small.tsv",
@@ -55,33 +55,13 @@ rule all:
                 "../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
-# need to fix the sorting and future filterong of files or do some magic with touching output if i refilter and sort everytime??
-# rule SortingFilesAndFilter: ## it is easier to do as a rule because snakemake restarts everyting if nit
-#     # input:
-#     #     mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change
-#     #     callability = genomebedfile # maybe run some blacklist filterning on this, # A callability file that show which regions are good to filter on # might be a place holder
-#     resources:
-#         threads=4,
-#         time=120,
-#         mem_mb=5000
-#     output:
-#         mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change
-#         callability = genomebedfile
-#     shell:"""
-#     sort -k1,1 -o {output.mutations} {output.mutations}
-#     sort -k1,1 -o {output.callability} {output.callability}
-#     """
-
-#rule CreateAnnotationTrack
-
 #add the partion-flag -p kmerpap_output when i decide to run it
 # does not work with sex chromosomes
 rule AnnotateMutations: # we annotate existing mutations and generate a dataset of sampled from the full genome look at downsample parameter
     input: 
         refgenome = genome2bit,
-        #kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change # for now it is prevoius kmerpapafiles
         kmerpartition = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt",
-        mutations = "../resources/{mutationtype}denovo.tsv", #hardcoded should change Raw mutations
+        mutations = lambda wc: mutationfiles[wc.mutationtype], #hardcoded should change Raw mutations
         callability = genomebedfile,
         annotationfile = annotation_parameters
     resources:
@@ -96,7 +76,7 @@ rule AnnotateMutations: # we annotate existing mutations and generate a dataset 
     output:
         annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"
     shell:"""
-    {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.mutations} -a {params.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose | gzip > {output.annotated_mutations}
+    {params.glorific} {params.var_type} {input.refgenome} {input.callability} {input.mutations} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose | gzip > {output.annotated_mutations}
     """
 
 rule TrainingModels:
@@ -112,7 +92,7 @@ rule TrainingModels:
     output:
         model = "../output/Models/{mutationtype}_{logmodel}_LassoBestModel.RData", # add no intercept_model
     shell:"""
-    Rscript scripts/modeltraining.R {input.trainingfile} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
+    Rscript scripts/modeltraining.R {input.annotated_mutations} {wildcards.mutationtype} {wildcards.logmodel} {output.model}
     """
 
 rule PossibleMutationChromosome:
@@ -128,7 +108,7 @@ rule PossibleMutationChromosome:
         possible_mutations_pr_chromosome = "../output/PossibleMutations/chr/{chromosomes}_variants.txt.gz"
     shell:"""
     gunzip --stdout {input.transcript_file} | awk '$1 == "{wildcards.chromosomes}"' - | /home/oliver/.cargo/bin/genovo --action transform --gff3 - --genomic-regions {output.transcript_pr_chromosome}
-    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.ref_genome} | tail -n +3 - | gzip > {output.possible_mutations_pr_chromosome}
+    /home/oliver/.cargo/bin/genovo --action possible_mutations --genomic-regions {output.transcript_pr_chromosome} --genome {input.refgenome} | tail -n +3 - | gzip > {output.possible_mutations_pr_chromosome}
     """
 
 rule PossibleMutations:
@@ -164,7 +144,7 @@ rule PossibleLoF:
 rule AnnotatedPossibleMutations: # indels are alrady annotated 
     input: 
         refgenome = genome2bit,
-        kmerpartition = "../resources/papa_files/autosome_{mutationtype}_4.txt", #hardcoded should change
+        kmerpartition = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt", #hardcoded should change
         possible_lof = "../output/PossibleMutations/LoF/{mutationtype}_possibleLoF.txt",
         callability = genomebedfile,
         annotationfile= annotation_parameters 
@@ -180,12 +160,12 @@ rule AnnotatedPossibleMutations: # indels are alrady annotated
     output:
         annotated_mutations = "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"
     shell:"""
-    {params.glorific} {params.var_type} {input.ref_genome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose > {output.annotated_mutations}
+    {params.glorific} {params.var_type} {input.refgenome} {input.callability} {input.possible_lof} -a {input.annotationfile} -d {params.downsample} -p {input.kmerpartition} -l --verbose > {output.annotated_mutations}
     """
 #annotated_lof = lambda wc: annotated_variants_path[wc.mutationtype] # old
 rule Prediction:
     input:
-        model = "../output/models/{mutationtype}_{logmodel}_LassoBestModel.RData",
+        model = "../output/Models/{mutationtype}_{logmodel}_LassoBestModel.RData",
         annotated_lof = "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"
         #pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
     resources:

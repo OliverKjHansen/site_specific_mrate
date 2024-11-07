@@ -47,15 +47,22 @@ df <- read_table(file = file)
 #ALT_allel <- find_mutation_type(df, nucleotides)
 
 # some of the genomic features will have NA values. e.g methylation will not be on a A2N mutation type. I will feed this to the model as a 0. for replication time, C within 1k context, ecombination rate and CpG Island a NA values will just be given the mean of the dataset.
-df[c("meth")][is.na(df[c("meth")])] <- 0
-df[c("repli")][is.na(df[c("repli")])] <- mean(df$repli, na.rm = TRUE)
+df[c("meth1")][is.na(df[c("meth1")])] <- 0
+df[c("meth2")][is.na(df[c("meth2")])] <- 0
+df[c("meth3")][is.na(df[c("meth3")])] <- 0
+df[c("repli1")][is.na(df[c("repli1")])] <- mean(df$repli, na.rm = TRUE)
+df[c("repli2")][is.na(df[c("repli2")])] <- mean(df$repli, na.rm = TRUE)
 df[c("GC_1k")][is.na(df[c("GC_1k")])] <- mean(df$GC_1k, na.rm = TRUE)
-df[c("recomb_decode")][is.na(df[c("recomb_decode")])] <- mean(df$recomb_decode, na.rm = TRUE)
-df[c("CpG_I")][is.na(df[c("CpG_I")])] <- mean(df$CpG_I, na.rm = TRUE)
+df[c("recomb")][is.na(df[c("recomb")])] <- mean(df$recomb, na.rm = TRUE)
+df[c("atac")][is.na(df[c("atac")])] <- mean(df$atac, na.rm = TRUE)
+df[c("CpG_I")][is.na(df[c("CpG_I")])] <- 0
+df[c("h3k9me3")][is.na(df[c("h3k9me3")])] <- 0
+df[c("h3k36me3")][is.na(df[c("h3k36me3")])] <- 0
+
 
 #previuos test have shown it is better to log-transform the recombination rate
 # should i +1 so i dont get the. -inf after log transforming?
-df[c("log_recomb")] <- log(df[c("recomb_decode")]+1)
+df[c("log_recomb")] <- log(df[c("recomb")]+1)
 
 #before training the model we want to the the context feature, which is closest to the average mutation rate and make it the reference(intercept) for the regression. 
 # here is say mutation/opportunities(nonmut+mut)
@@ -88,11 +95,12 @@ save(levelsval, file = levelsfile)
 y<-df$mut
 
 if (log_model == "nobeta") {
-x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I -1, df) # no intercepts
+x <- model.matrix( ~ context + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, df) # no intercepts
 } else if (log_model== "intercept") {
-x <- model.matrix( ~ context + repli + GC_1k + recomb_decode + meth + CpG_I, df) # with intercept
+x <- model.matrix( ~ context + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I, df) # with intercept
 }
 
+#f <- as.formula( ~ .*.) and x <- model.matrix(f, TrainData)[, -1]
 
 cv.fit <-cv.glmnet(x,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 100000)
 

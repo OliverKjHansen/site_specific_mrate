@@ -14,15 +14,21 @@ output <- args[5]
 
 # loading in prediction dataset
 df <- read.table(file, header = TRUE)
-df[c("meth")][is.na(df[c("meth")])] <- 0
-df[c("repli")][is.na(df[c("repli")])] <- mean(df$repli, na.rm = TRUE)
+df[c("meth1")][is.na(df[c("meth1")])] <- 0
+df[c("meth2")][is.na(df[c("meth2")])] <- 0
+df[c("meth3")][is.na(df[c("meth3")])] <- 0
+df[c("repli1")][is.na(df[c("repli1")])] <- mean(df$repli, na.rm = TRUE)
+df[c("repli2")][is.na(df[c("repli2")])] <- mean(df$repli, na.rm = TRUE)
 df[c("GC_1k")][is.na(df[c("GC_1k")])] <- mean(df$GC_1k, na.rm = TRUE)
-df[c("recomb_decode")][is.na(df[c("recomb_decode")])] <- mean(df$recomb_decode, na.rm = TRUE)
-df[c("CpG_I")][is.na(df[c("CpG_I")])] <- mean(df$CpG_I, na.rm = TRUE)
+df[c("recomb")][is.na(df[c("recomb")])] <- mean(df$recomb, na.rm = TRUE)
+df[c("atac")][is.na(df[c("atac")])] <- mean(df$atac, na.rm = TRUE)
+df[c("CpG_I")][is.na(df[c("CpG_I")])] <- 0
+df[c("h3k9me3")][is.na(df[c("h3k9me3")])] <- 0
+df[c("h3k36me3")][is.na(df[c("h3k36me3")])] <- 0
 ##when the downsampling is done, sometimes postions that cant be annotated in certain genomic features occur, to overcome this we just avg them out. 
 
 #transformation of features
-df[c("recomb_decode")] <- log(df[c("recomb_decode")]+1)
+df[c("log_recomb")] <- log(df[c("recomb")]+1)
 
 ##Loading in model from training
 load(model)
@@ -30,15 +36,15 @@ load(model)
 #loading in levels
 load(levelsval)
 
-new_df <- df[c("context","repli","GC_1k","recomb_decode","meth","CpG_I")] # make this a input/parameter
+new_df <- df[c("context","repli1","GC_1k","recomb","meth1","CpG_I","h3k36me3","h3k9me3", "atac")] # make this a input/parameter
 
 # x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df)
 options(na.action='na.pass')
 
 if (log_model == "nobeta") {
-x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df) # no intercepts
+x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, new_df) # no intercepts
 } else if (log_model== "intercept") {
-x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I, new_df) # with intercept
+x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I, new_df) # with intercept
 }
 
 
