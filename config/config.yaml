@@ -15,32 +15,31 @@ insertion: "../resources/mutations/dnm/insertion_dnm.tsv",
 deletion: "../resources/mutations/dnm/deletion_dnm.tsv"
 }
 
-atac,h3k9me3,h3k36me3,meth1,meth2,meth3,recomb,GC1k,CpG_I,repli1
 ####Kmerpapa crossvalidation
 penalty_values: [1,5,7,8,9,10,12,13,14,15,17,20,21] # also complexity
 alpha_values: [1] # also pseudo count
 
-genomic_features: ["meth", ""]
+#genomic_features: ["meth", ""] atac,h3k9me3,h3k36me3,meth1,meth2,meth3,recomb,GC1k,CpG_I,repli1
 #paths to possible Lof files 
-possible_variants_path: {A2C: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2C.gencode_v42_LoF_SNVs_sorted.txt",
-A2G: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2G.gencode_v42_LoF_SNVs_sorted.txt",
-A2T: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2T.gencode_v42_LoF_SNVs_sorted.txt",
-C2A: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2A.gencode_v42_LoF_SNVs_sorted.txt", 
-C2G: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2G.gencode_v42_LoF_SNVs_sorted.txt",
-C2T: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2T.gencode_v42_LoF_SNVs_sorted.txt"
-}
+# possible_variants_path: {A2C: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2C.gencode_v42_LoF_SNVs_sorted.txt",
+# A2G: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2G.gencode_v42_LoF_SNVs_sorted.txt",
+# A2T: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/A2T.gencode_v42_LoF_SNVs_sorted.txt",
+# C2A: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2A.gencode_v42_LoF_SNVs_sorted.txt", 
+# C2G: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2G.gencode_v42_LoF_SNVs_sorted.txt",
+# C2T: "../../MakeLogRegInput/possible_variants/split_SNV_LoF/unzipped_sorted/C2T.gencode_v42_LoF_SNVs_sorted.txt"
+# }
 
-annotated_variants_path: {A2C: "../../MakeLogRegInput/annotated_datasets/all_possible/A2C_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-A2G: "../../MakeLogRegInput/annotated_datasets/all_possible/A2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-A2T: "../../MakeLogRegInput/annotated_datasets/all_possible/A2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-C2A: "../../MakeLogRegInput/annotated_datasets/all_possible/C2A_GC_repli_recomb_meth_0_long_hg38.dat.gz", 
-C2G: "../../MakeLogRegInput/annotated_datasets/all_possible/C2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-C2T: "../../MakeLogRegInput/annotated_datasets/all_possible/C2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
-insertion: "../output/PossibleVariants/insertion_possible_lof.tsv.gz",
-deletion: "../output/PossibleVariants/deletion_possible_lof.tsv.gz",
-insertion: "",
-deletion: ""
-}
+# annotated_variants_path: {A2C: "../../MakeLogRegInput/annotated_datasets/all_possible/A2C_GC_repli_recomb_meth_0_long_hg38.dat.gz",
+# A2G: "../../MakeLogRegInput/annotated_datasets/all_possible/A2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
+# A2T: "../../MakeLogRegInput/annotated_datasets/all_possible/A2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
+# C2A: "../../MakeLogRegInput/annotated_datasets/all_possible/C2A_GC_repli_recomb_meth_0_long_hg38.dat.gz", 
+# C2G: "../../MakeLogRegInput/annotated_datasets/all_possible/C2G_GC_repli_recomb_meth_0_long_hg38.dat.gz",
+# C2T: "../../MakeLogRegInput/annotated_datasets/all_possible/C2T_GC_repli_recomb_meth_0_long_hg38.dat.gz",
+# insertion: "../output/PossibleVariants/insertion_possible_lof.tsv.gz",
+# deletion: "../output/PossibleVariants/deletion_possible_lof.tsv.gz",
+# insertion: "",
+# deletion: ""
+# }
 
 mut_translations: {A2C: ["snv","",""],
 A2G: ["snv","",""],
@@ -58,14 +57,14 @@ indel: "--before_after 4 3"
 
 #xcxc|x|cxc # how indel_kmers are decidedd
 
-logmodel: ["nobeta","intercept"]
+logmodel: ["standard","fullinteraction","contextinteraction"]
 
 #gfeatures: ["repli","GC_1k","recomb_decode","CpG_I","meth"]
 
 #for haploinsufficiency
 
 #for compareing different models
-models: ["kmer", "genomic","both"] # have to find another name for the full/complex model
+models: ["context","genomic","linear","contextinteraction" ,"fullinteraction"] # have to find another name for the full/complex model
 
 
 #resources
@@ -75,7 +74,7 @@ transcripts_gtf: "../resources/gencode.v42.annotation.gtf.gz"
 hg382bit:  "../resources/hg38.2bit"
 hg38bedfile_strict: "../resources/20160622.allChr.mask_noXY.bed" ## this should change or be double checked. it was just somethig i had laying around
 #hg38bedfile_full: "../resources/hg38.bed"
-annotation_parameters: ../resources/annotationtracks.txt
+annotation_parameters: "../resources/annotationtracks.txt"
 #annotation_parameters: ../../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt # hardcoded at the moment
 
 # cd ~/nnPib2021/group_POB && echo "files ..." && chmod -f -R u+rw,g+rw,o+rw . 

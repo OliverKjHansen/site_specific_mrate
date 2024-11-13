@@ -17,9 +17,9 @@ df <- read.table(file, header = TRUE)
 df[c("meth1")][is.na(df[c("meth1")])] <- 0
 df[c("meth2")][is.na(df[c("meth2")])] <- 0
 df[c("meth3")][is.na(df[c("meth3")])] <- 0
-df[c("repli1")][is.na(df[c("repli1")])] <- mean(df$repli, na.rm = TRUE)
-df[c("repli2")][is.na(df[c("repli2")])] <- mean(df$repli, na.rm = TRUE)
-df[c("GC_1k")][is.na(df[c("GC_1k")])] <- mean(df$GC_1k, na.rm = TRUE)
+df[c("repli1")][is.na(df[c("repli1")])] <- mean(df$repli1, na.rm = TRUE)
+df[c("repli2")][is.na(df[c("repli2")])] <- mean(df$repli2, na.rm = TRUE)
+df[c("GC1k")][is.na(df[c("GC1k")])] <- mean(df$GC1k, na.rm = TRUE)
 df[c("recomb")][is.na(df[c("recomb")])] <- mean(df$recomb, na.rm = TRUE)
 df[c("atac")][is.na(df[c("atac")])] <- mean(df$atac, na.rm = TRUE)
 df[c("CpG_I")][is.na(df[c("CpG_I")])] <- 0
@@ -41,10 +41,13 @@ new_df <- df[c("context","repli1","GC_1k","recomb","meth1","CpG_I","h3k36me3","h
 # x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli + GC_1k + recomb_decode + meth + CpG_I -1, new_df)
 options(na.action='na.pass')
 
-if (log_model == "nobeta") {
-x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, new_df) # no intercepts
-} else if (log_model== "intercept") {
-x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I, new_df) # with intercept
+if (log_model == "standard") {
+x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, df) # standard. no interactions
+} else if (log_model== "fullinteraction") {
+x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) * (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I) + 
+                        (repli1 + GC_1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpGI)^2 - 1, df) # interactions between everything
+} else if (log_model== "contextinteraction") {
+x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) * (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I) - 1, df) # no interaction between genomic features
 }
 
 

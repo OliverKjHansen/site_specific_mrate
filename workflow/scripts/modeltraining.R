@@ -50,9 +50,9 @@ df <- read_table(file = file)
 df[c("meth1")][is.na(df[c("meth1")])] <- 0
 df[c("meth2")][is.na(df[c("meth2")])] <- 0
 df[c("meth3")][is.na(df[c("meth3")])] <- 0
-df[c("repli1")][is.na(df[c("repli1")])] <- mean(df$repli, na.rm = TRUE)
-df[c("repli2")][is.na(df[c("repli2")])] <- mean(df$repli, na.rm = TRUE)
-df[c("GC_1k")][is.na(df[c("GC_1k")])] <- mean(df$GC_1k, na.rm = TRUE)
+df[c("repli1")][is.na(df[c("repli1")])] <- mean(df$repli1, na.rm = TRUE)
+df[c("repli2")][is.na(df[c("repli2")])] <- mean(df$repli2, na.rm = TRUE)
+df[c("GC1k")][is.na(df[c("GC1k")])] <- mean(df$GC1k, na.rm = TRUE)
 df[c("recomb")][is.na(df[c("recomb")])] <- mean(df$recomb, na.rm = TRUE)
 df[c("atac")][is.na(df[c("atac")])] <- mean(df$atac, na.rm = TRUE)
 df[c("CpG_I")][is.na(df[c("CpG_I")])] <- 0
@@ -72,13 +72,13 @@ reference_context <- df %>%
          opportunities = n(),
          rate = mutations/opportunities,
          diff = abs(rate-(sum(df[["mut"]])/length(df[["mut"]])))
-         ) %>% slice_min(diff, n = 1) %>% as.vector() %>% .$context
+         ) %>% slice_min(diff, n = 1) %>% .[[1,1]]
 
 
 ## preparing the model
 
 #levelsval <- relevel(factor(df$context),reference_context)
-#chaning refernce context
+#chaning reference context
 levelsval <- df$context %>% factor() %>% relevel(reference_context)
 df$context <- df$context %>% factor() %>% relevel(reference_context)
 
@@ -94,12 +94,16 @@ save(levelsval, file = levelsfile)
 ## lets try to make two models. one where number of dummy variables are k and one where it is k-1. basically do we choose to fit the intercept or not?
 y<-df$mut
 
-if (log_model == "nobeta") {
-x <- model.matrix( ~ context + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, df) # no intercepts
-} else if (log_model== "intercept") {
-x <- model.matrix( ~ context + repli1 + GC_1k + recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I, df) # with intercept
+if (log_model == "standard") {
+x <- sparse.model.matrix( ~ context + repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, df) # standard. no interactions
+} else if (log_model== "fullinteraction") {
+x <- sparse.model.matrix( ~ context * (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I) + 
+                            (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I)^2 - 1, df) # interactions between everything
+} else if (log_model== "contextinteraction") {
+x <- sparse.model.matrix( ~ context * (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I) - 1, df) # no interaction between genomic features
 }
 
+print(colnames(x))
 #f <- as.formula( ~ .*.) and x <- model.matrix(f, TrainData)[, -1]
 
 cv.fit <-cv.glmnet(x,y,alpha=1,family='binomial', type.measure = 'deviance', maxit = 100000)

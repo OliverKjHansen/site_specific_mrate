@@ -51,7 +51,7 @@ rule all:
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions_small.tsv",
                 "../output/Transcripts/expected/expected_transcript_1se_{logmodel}.tsv",
                 "../output/Transcripts/expected/expected_transcript_min_{logmodel}.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
-        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.RData", 
+        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv", 
                 "../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
@@ -61,18 +61,18 @@ rule AnnotateMutations: # we annotate existing mutations and generate a dataset 
     input: 
         refgenome = genome2bit,
         kmerpartition = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt",
-        mutations = lambda wc: mutationfiles[wc.mutationtype], #hardcoded should change Raw mutations
+        mutations = lambda wc: mutationfiles[wc.mutationtype],
         callability = genomebedfile,
         annotationfile = annotation_parameters
     resources:
         threads=4,
-        time=180,
+        time=240,
         mem_mb=5000
     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
         glorific = glorific_path, # when conda compatibility fixed remive this
         var_type = lambda wc: mut_translations[wc.mutationtype][0],
-        downsample = "0.002",
+        downsample = "0.002"
     output:
         annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"
     shell:"""
@@ -84,9 +84,9 @@ rule TrainingModels:
         #trainingfile = lambda wc: paths[wc.mutationtype] # hardcoded, should at some point be the output from the AnnotateMutations rule
         annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz" 
     resources:
-        threads=4,
-        time=250,
-        mem_mb=80000
+        threads=8,
+        time=480,
+        mem_mb=150000
     conda: "envs/callrv2.yaml"
     params: #add a list of genomic features
     output:
@@ -150,7 +150,7 @@ rule AnnotatedPossibleMutations: # indels are alrady annotated
         annotationfile= annotation_parameters 
     resources:
         threads=4,
-        time=120,
+        time=480,
         mem_mb=20000
     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
@@ -174,7 +174,7 @@ rule Prediction:
         mem_mb=100000 
     conda: "envs/callrv2.yaml"
     params: 
-        levels = "../output/levels/{mutationtype}_{logmodel}_levels.RData"# can do log_model here??
+        levels = "../output/Model/{mutationtype}_{logmodel}_levels.RData"# can do log_model here??
     output:
         predictions = "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"
     shell:"""
