@@ -1,7 +1,7 @@
 rule AnnotatingTranscripts: #this step should proberly be made more smart
     input:
         transcript_file = "../resources/gencode.v42.annotation.gff3.gz", # placeholder
-        predictions = "../output/DeleteLate_Predictions/{mutationtype}_{logmodel}_predictions.tsv", #change later
+        predictions = "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"
     resources:
         threads=4,
         time=120,

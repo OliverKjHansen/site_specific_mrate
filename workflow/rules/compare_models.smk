@@ -3,18 +3,18 @@ configfile: "../config/config.yaml"
 # mutationtypes = config["type"]
 # paths = config["mutation_files"]
 # models = config["models"]
-gencode = config["gencode"]
+#gencode = config["gencode"]
 
 rule EvenOddChromosomeModels:
     input: 
         #data = lambda wc: paths[wc.mutationtype]
         annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"
     resources:
-        threads=4,
+        threads=8,
         time=450,
-        mem_mb=80000
+        mem_mb=100000
     output:
-        tmp_mutations = temp("../output/AnnotatedMutations/{mutationtype}_annotated.txt")
+        tmp_mutations = temp("../output/AnnotatedMutations/{mutationtype}_annotated_{modeltype}.txt"),
         summary = "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv"
     shell:"""
     zcat {input.annotated_mutations} > {output.tmp_mutations}

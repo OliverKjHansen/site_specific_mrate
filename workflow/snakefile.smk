@@ -8,8 +8,8 @@ paths = config["mutationfiles"] # maybe do this smarter so the inputdata is not 
 logmodels = config["logmodel"] # intercept or no_intercept(nobeta)
 models = config["models"]
 mutationfiles = config["mutationfiles"]
-possible_variants_path = config["possible_variants_path"] ##should be removed when i can generate all the files myself
-annotated_variants_path = config["annotated_variants_path"] #should be removed when i can generate all the files myself
+#possible_variants_path = config["possible_variants_path"] ##should be removed when i can generate all the files myself
+#annotated_variants_path = config["annotated_variants_path"] #should be removed when i can generate all the files myself
 chromosomes = config["chromosomes"]
 
 #gencode = config["gencode"]
@@ -20,13 +20,16 @@ annotation_parameters = config["annotation_parameters"]
 bck_kmer= config["bck_kmer"]
 mut_translations = config["mut_translations"]
 
+#kmerpapa crossvalidation
 include: "rules/kmerpapa_crossvalidation.smk"
 penalty = config["penalty_values"]
 alpha = config["alpha_values"]
+
 # haploinsufficiency analysis 
 include: "rules/haploinsufficiency.smk"
+
 # compare models analysis
-#include: "rules/compare_models.smk"
+include: "rules/compare_models.smk"
 
 glorific_path = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific" #change this later
 
@@ -51,9 +54,9 @@ rule all:
                 "../output/Transcripts/{mutationtype}_{logmodel}_predictions_small.tsv",
                 "../output/Transcripts/expected/expected_transcript_1se_{logmodel}.tsv",
                 "../output/Transcripts/expected/expected_transcript_min_{logmodel}.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
-        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv", 
-                "../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
-                "../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
+        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv"], mutationtype = mutationtypes, modeltype = models)
+                #"../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
+                #"../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
 #add the partion-flag -p kmerpap_output when i decide to run it
 # does not work with sex chromosomes
@@ -65,8 +68,8 @@ rule AnnotateMutations: # we annotate existing mutations and generate a dataset 
         callability = genomebedfile,
         annotationfile = annotation_parameters
     resources:
-        threads=4,
-        time=240,
+        threads=8,
+        time=440,
         mem_mb=5000
     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
@@ -85,7 +88,7 @@ rule TrainingModels:
         annotated_mutations = "../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz" 
     resources:
         threads=8,
-        time=480,
+        time=880,
         mem_mb=150000
     conda: "envs/callrv2.yaml"
     params: #add a list of genomic features
@@ -149,8 +152,8 @@ rule AnnotatedPossibleMutations: # indels are alrady annotated
         callability = genomebedfile,
         annotationfile= annotation_parameters 
     resources:
-        threads=4,
-        time=480,
+        threads=8,
+        time=720,
         mem_mb=20000
     #conda: "envs/glorific.yaml" # add if i can get glorific to be in a conda environment, will work with pip too
     params: 
@@ -169,12 +172,12 @@ rule Prediction:
         annotated_lof = "../output/PossibleMutations/annotated/{mutationtype}_possibleLoF_annotated.tsv"
         #pred_data = "../MakeLogRegInput/annotated_datasets/all_possible/{muttype}_GC_repli_recomb_meth_0_long_hg38.dat.gz"
     resources:
-        threads=4,
-        time=180,
+        threads=8,
+        time=360,
         mem_mb=100000 
     conda: "envs/callrv2.yaml"
     params: 
-        levels = "../output/Model/{mutationtype}_{logmodel}_levels.RData"# can do log_model here??
+        levels = "../output/Models/{mutationtype}_{logmodel}_levels.RData"# can do log_model here??
     output:
         predictions = "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"
     shell:"""

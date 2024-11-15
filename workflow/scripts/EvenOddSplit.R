@@ -104,7 +104,7 @@ summary <- predictions_df %>% summarise(obs = n(),
                              AIC = 2*k-2*loglik,
                              AIC_1se = 2*k-2*loglik_1se,
                              BIC = k*log(obs)-2*loglik,
-                             BIC_1se = k*log(obs)-2*loglik_1se
+                             BIC_1se = k*log(obs)-2*loglik_1se,
                              model =  modeltype,
                              mutationtype = mutationtype)
 

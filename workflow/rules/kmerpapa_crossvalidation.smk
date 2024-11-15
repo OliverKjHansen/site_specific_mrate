@@ -7,7 +7,7 @@
 # genome2bit = config["hg382bit"]
 # genomebedfile = config["hg38bedfile"]
 
-# bck_kmer= config["bck_kmer"] # change to superpattern
+# bck_kmer= config["bck_kmer"] #change to superpattern
 # mut_translations = config["mut_translations"]
 
 penalty = config["penalty_values"]
