@@ -1,4 +1,3 @@
-
 library(tidyverse)
 #library(stringi)
 library(glmnet)
@@ -45,7 +44,7 @@ if (log_model == "standard") {
 x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) + repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I -1, df) # standard. no interactions
 } else if (log_model== "fullinteraction") {
 x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) * (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I) + 
-                        (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpGI)^2 - 1, df) # interactions between everything
+                        (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I)^2 - 1, df) # interactions between everything
 } else if (log_model== "contextinteraction") {
 x <- sparse.model.matrix( ~ factor(context, levels = sort(unique(levelsval))) * (repli1 + GC1k + log_recomb + meth1 + atac + h3k9me3 + h3k36me3 + CpG_I) - 1, df) # no interaction between genomic features
 }
