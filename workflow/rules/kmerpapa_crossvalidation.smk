@@ -109,8 +109,30 @@ rule BestKmerPaPa:
         alpha = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_penalty_and_alpha_best_parameters.txt".format(wc.mutationtype)).read().split()[1])
     conda: "../envs/kmerpapa.yaml"
     output: 
-        kmerpapa = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"
+        kmerpapa = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt",
+        kmerpapa_types = "../output/KmerPaPa/best_partition/{mutationtype}_rate.txt"
     shell:"""
     kmerpapa --positive {input.kmercount} --background {input.backgroundcount} {params.super_pattern} --penalty_values {params.penalty} --pseudo_counts {params.alpha} -o {output.kmerpapa}
     sed -i '1s/^/#/' {output.kmerpapa}
+    awk 'FNR>1 || NR==0 {{print "{wildcards.mutationtype}",$1,$4}}' {output.kmerpapa} > {output.kmerpapa_types}
     """
+
+rule KmerPaPaModel:
+    input:
+        kmerpapa = expand(["../output/KmerPaPa/best_partition/{mutationtype}_rate.txt"], mutationtype = mutationtypes)
+    resources:
+        threads=1,
+        time=60,
+        mem_mb=5000
+    conda: "../envs/callrv2.yaml"
+    output: 
+        kmerpapa_all = "../output/KmerPaPa/best_partition/all_best_papa.txt",
+        tmp = temp("../output/KmerPaPa/best_partition/all_best_papa_tmp.txt"),
+        snv_mutation_probs = "../output/KmerPaPa/best_partition/snv_mutation_rate_papa.txt",
+        indel_mutation_probs = "../output/KmerPaPa/best_partition/indel_mutation_rate_papa.txt"
+    shell:"""
+    cat {input.kmerpapa} > {output.kmerpapa_all}
+    python scripts/pattern_matches.py {output.kmerpapa_all} > {output.tmp}
+    Rscript scripts/papa_mutation_rate.R {output.tmp} {output.snv_mutation_probs} {output.indel_mutation_probs} 
+    """
+    

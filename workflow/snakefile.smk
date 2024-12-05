@@ -26,10 +26,13 @@ penalty = config["penalty_values"]
 alpha = config["alpha_values"]
 
 # haploinsufficiency analysis 
-#include: "rules/haploinsufficiency.smk"
+include: "rules/haploinsufficiency.smk"
 
 # compare models analysis
 include: "rules/compare_models.smk"
+
+include: "rules/expected_synonymous.smk"
+
 
 glorific_path = "/home/oliver/.cache/pypoetry/virtualenvs/glorific-JUSrNIgv-py3.12/bin/glorific" #change this later
 
@@ -43,7 +46,9 @@ rule all:
         expand([#"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_{penalty}_{pseudo}_PaPa_cv.tsv",
                 #"../output/KmerPaPa/{mutationtype}_cv/{mutationtype}_parametergridfile.txt",
                 #"plots/KmerPaPa/{mutationtype}_penalty_and_pseudo_loglike.pdf",
-                "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
+                "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt",
+                "../output/KmerPaPa/best_partition/snv_mutation_rate_papa.txt",
+                "../output/KmerPaPa/best_partition/indel_mutation_rate_papa.txt"], mutationtype = mutationtypes),# penalty = penalty, pseudo = pseudo), #could make this its own workflow
         expand(["../output/AnnotatedMutations/{mutationtype}_annotated.txt.gz"], mutationtype = mutationtypes),
         expand(["../output/Models/{mutationtype}_{logmodel}_LassoBestModel.RData"], mutationtype = mutationtypes, logmodel = logmodels),
         expand(["../output/PossibleMutations/variants/{chromosome}_possible_variants.txt.gz",
@@ -51,10 +56,11 @@ rule all:
                 "../output/PossibleMutations/annotatedLoF/{mutationtype}/{chromosome}_possibleLoF_annotated.tsv",
                 "../output/Predictions/{mutationtype}/{logmodel}/{mutationtype}_{logmodel}_{chromosome}_predictions.tsv",
                 "../output/Predictions/{mutationtype}/{logmodel}/{mutationtype}_{logmodel}_{chromosome}_transcript_predictions.tsv"], mutationtype = mutationtypes,logmodel = logmodels, chromosome = chromosomes),
-               # "../output/Transcripts/{mutationtype}_{logmodel}_predictions_small.tsv",
-               # "../output/Transcripts/expected/expected_transcript_1se_{logmodel}.tsv",
-               # "../output/Transcripts/expected/expected_transcript_min_{logmodel}.tsv"], mutationtype = mutationtypes,logmodel = logmodels),
-        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv"], mutationtype = mutationtypes, modeltype = models)
+        expand(["../output/Predictions/syn/{mutationtype}/{logmodel}/{mutationtype}_{logmodel}_{chromosome}_transcript_predictions.tsv",
+                "../output/ObservedExpected/syn/all/synonymous_{logmodel}_observed_expected.tsv"], mutationtype = mutationtypes,logmodel = logmodels, chromosome = chromosomes), #synonymous 
+        expand(["../output/ObservedExpected/{logmodel}/{logmodel}_observed_expected_{chromosome}.tsv",
+                "../output/ObservedExpected/all/{logmodel}_observed_expected.tsv"],chromosome = chromosomes, logmodel = logmodels),
+        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv"], mutationtype = mutationtypes, modeltype = models, chromosome = chromosomes)
                 #"../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 #"../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
@@ -141,7 +147,7 @@ rule PossibleLoF:
     awk '{{print $0}}' {output.unfiltered} | sort -k1,1 -k2,2n | uniq > {output.possibleLoF}
     """
 
-rule AnnotatePossibleVariants: # indels are alrady annotated 
+rule AnnotatePossibleLoF: # indels are alrady annotated #Variants!!!
     input: 
         refgenome = genome2bit,
         kmerpartition = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt", 
@@ -182,5 +188,3 @@ rule Prediction:
     Rscript scripts/predictions.R {input.annotatedLoF} {input.model} {params.levels} {wildcards.logmodel} {output.predictions}
     Rscript scripts/joiningtranscripts.R {input.possibleLoF} {output.predictions} {output.wtranscripts}
     """
-
-#rule ScalePredictions 

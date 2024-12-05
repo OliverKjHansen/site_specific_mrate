@@ -1,38 +1,80 @@
-rule AnnotatingTranscripts: #this step should proberly be made more smart
+rule ObservedMutations:
     input:
-        transcript_file = "../resources/gencode.v42.annotation.gff3.gz", # placeholder
-        predictions = "../output/Predictions/{mutationtype}_{logmodel}_predictions.tsv"
+        mutations = "../resources/mutations/gnomad/vcfs/gnomad.genomes.v4.1.sites.{chromosome}.vcf.bgz",
+        transcript_file = "../resources/gencode.v42.annotation.gff3.gz",
+        callability = genomebedfile,
+        refgenome = genome2bit,
+        point_mutation_probabilities = "../output/KmerPaPa/best_partition/snv_mutation_rate_papa.txt",
+        indel_mutation_probabilities = "../output/KmerPaPa/best_partition/indel_mutation_rate_papa.txt"
+    resources:
+        threads=8,
+        time=880,
+        mem_mb=150000
+    conda: "../envs/kmercounter.yaml"
+    output:
+        filtered_mutations = "../resources/mutations/gnomad/derived/gnomad.filtered_{chromosome}.vcf",
+        genovo = "../output/Genovo/genovo_results_{chromosome}.txt"
+    shell:"""
+    gunzip -c {input.mutations} | bedtools intersect -a - -b {input.callability} | awk -v OFS="\t" '{{print $1,$2,$4,$5}}' > {output.filtered_mutations}
+    sed -i $"s/\\t/ /g" {output.filtered_mutations}
+    gunzip --stdout {input.transcript_file} | awk '$1 == "{wildcards.chromosome}"' - | \
+    /home/oliver/.cargo/bin/genovo \
+	--gff3 - \
+	--observed-mutations {output.filtered_mutations} \
+	--genome {input.refgenome} \
+	--point-mutation-probabilities {input.point_mutation_probabilities} \
+	--indel-mutation-probabilities {input.indel_mutation_probabilities} \
+	--significant-mutations {output.genovo}
+    """
+
+# FILTER=<ID=AC0,Description="Allele count is zero after filtering out low-confidence genotypes (GQ < 20; DP < 10; and AB < 0.2 for het calls)">FILTER=<ID=AS_VQSR,Description="Failed VQSR filtering thresholds of -2.502 for SNPs and -0.7156 for indels">
+# FILTER=<ID=InbreedingCoeff,Description="Inbreeding coefficient < -0.3">
+# FILTER=<ID=PASS,Description="Passed all variant filters">
+
+# only take the header from the first file
+rule ExpectedAllMutationtypes:
+    input:
+        wtranscripts = expand(["../output/Predictions/{mutationtype}/{{logmodel}}/{mutationtype}_{{logmodel}}_{{chromosome}}_transcript_predictions.tsv"], mutationtype = mutationtypes)
     resources:
         threads=4,
+        time=60,
+        mem_mb=50000
+    conda: "../envs/callrv2.yaml"
+    output:
+        wtranscripts = "../output/Predictions/alltypes/{logmodel}_transcript_predictions_{chromosome}.tsv"
+    shell:"""
+    awk 'FNR>1 || NR==1' {input.wtranscripts} > {output.wtranscripts}
+    """
+rule ObservedExpectedRatio: # run again
+    input:
+        genovo = "../output/Genovo/genovo_results_{chromosome}.txt",
+        canonical = "../resources/mart_export.txt",
+        wtranscripts = "../output/Predictions/alltypes/{logmodel}_transcript_predictions_{chromosome}.tsv",  
+        haploinsufficiency = "../resources/ClinGen_gene_curation_list_GRCh38.tsv"
+    resources:
+        threads=8,
         time=120,
         mem_mb=50000
-    conda: "../envs/bedtools.yaml"
-    output: 
-        shorten_file = temp("../output/Transcripts/{mutationtype}_{logmodel}_shorten.tsv"), 
-        transcripts_predictions_tmp =  temp("../output/Transcripts/{mutationtype}_{logmodel}_predictions_tmp.tsv"), # should be able to do this in on go
-        transcripts_predictions =  "../output/Transcripts/{mutationtype}_{logmodel}_predictions.tsv",
-        small_file = "../output/Transcripts/{mutationtype}_{logmodel}_predictions_small.tsv"
+    conda: "../envs/callrv2.yaml"
+    output:
+        #genovo_tmp = temp("../output/Genovo/{logmodel}_all_genovo_results.txt"),
+        #wtranscripts = temp("../output/Predictions/{logmodel}_transcript_predictions.tsv"),
+        oeratio = "../output/ObservedExpected/{logmodel}/{logmodel}_observed_expected_{chromosome}.tsv"
     shell:"""
-    awk -v OFS="\\t" '{{print $1,$2,$3,$13}}' {input.transcript_file} > {output.shorten_file}
-    awk -v OFS="\\t" '{{ $2=$2-1"\\t"$2; print }}' {input.predictions} > {output.transcripts_predictions_tmp}
-    head -n 1 {output.transcripts_predictions_tmp} > {output.transcripts_predictions}
-    sed -i '1 s/$/\\tchrom\\tint_start\\tint_end\\ttranscript_id/' {output.transcripts_predictions}
-    bedtools intersect -wo -a {output.transcripts_predictions_tmp} -b {output.shorten_file} | awk -v OFS="\\t" '{{$NF=""; print $0}}' - >> {output.transcripts_predictions}
-    awk -v OFS="\\t" '{{print $1,$3,$20,$21,$25,"{wildcards.mutationtype}"}}' {output.transcripts_predictions} > {output.small_file}
+    Rscript scripts/observedexpected.R {input.genovo} {input.canonical} {input.wtranscripts} {input.haploinsufficiency} {output.oeratio}
     """
-rule SummingTranscripts:
-    input:
-        transcripts_predictions_all =  expand(["../output/Transcripts/{mutationtype}_{{logmodel}}_predictions_small.tsv"], mutationtype = mutationtypes)
+rule HaploinsufficiencyROCCurve:
+    input:  
+        oeratio =  expand(["../output/ObservedExpected/{{logmodel}}/{{logmodel}}_observed_expected_{chromosome}.tsv"], chromosome = chromosomes)
     resources:
         threads=4,
         time=120,
-        mem_mb=100000 
+        mem_mb=150000
     conda: "../envs/callrv2.yaml"
-    output: 
-        all_types = "../output/Transcripts/expected/alltypes_{logmodel}_predictions_small.tsv",
-        routput_1se = "../output/Transcripts/expected/expected_transcript_1se_{logmodel}.tsv",
-        routput_min = "../output/Transcripts/expected/expected_transcript_min_{logmodel}.tsv"
+    output:
+        chromosomes = "../output/ObservedExpected/all/{logmodel}_observed_expected.tsv"
+        #roc = "plots/{logmodel}_haploinsufficiency.pdf"
     shell:"""
-    awk FNR!=1 {input.transcripts_predictions_all} > {output.all_types}
-    Rscript scripts/summing_transcripts.R {output.all_types} {output.routput_1se} {output.routput_min} 
+    awk 'FNR>1 || NR==1' {input.oeratio} > {output.chromosomes}
     """
+#Rscript scripts/observedexpected.R {output.roc}

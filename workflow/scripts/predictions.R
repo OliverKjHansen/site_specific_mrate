@@ -62,4 +62,6 @@ res_1se <- predict(cv.fit, newx = x, s = "lambda.1se", type = "response")
 df$prob_min <- res_min
 df$prob_1se <- res_1se
 
-write.table(df, file = output, sep='\t', quote=FALSE, row.names = FALSE)
+final <- df %>% select(c("chrom","pos", "prob_min" ,"prob_1se"))
+
+write.table(final, file = output, sep='\t', quote=FALSE, row.names = FALSE)
