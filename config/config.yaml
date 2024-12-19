@@ -46,6 +46,9 @@ logmodel: ["standard","fullinteraction","contextinteraction"]
 
 #for compareing different models
 models: ["context","genomic","linear","contextinteraction" ,"fullinteraction"] # have to find another name for the full/complex model
+evengenomebed: "../resources/20160622.allChr.mask_noXY_Even.bed"
+oddgenomebed: "../resources/20160622.allChr.mask_noXY_Odd.bed"
+compare: ["context", "standard","rate","rateoffset"]
 
 
 #resources
@@ -58,5 +61,5 @@ hg38bedfile_strict: "../resources/20160622.allChr.mask_noXY.bed" ## this should 
 annotation_parameters: "../resources/annotationtracks.txt"
 #annotation_parameters: ../../MakeLogRegInput/parameter_files/hg38/GC_repli_recomb_meth.txt # hardcoded at the moment
 
-# cd ~/nnPib2021/group_POB && echo "files ..." && chmod -f -R u+rw,g+rw,o+rw . 
-# cd ~/nnPib2021/group_POB && echo "dirs ..."  && find . -type d -exec chmod -f -s,o+rw {} \;
+# cd ~/MutationAnalysis/site_specific_mrate && echo "files ..." && chmod -f -R u+rw,g+rw,o+rw . 
+# cd ~/MutationAnalysis/site_specific_mrate && echo "dirs ..."  && find . -type d -exec chmod -f -s,o+rw {} \;

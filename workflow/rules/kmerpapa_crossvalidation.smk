@@ -51,7 +51,7 @@ rule MutationsKmerCount:
         kmercount = "../output/KmerCount/{mutationtype}_mutated_kmers.tsv"
     shell:"""
     awk -v OFS="\\t" '{{print $1,$2-1,$2,$3,$4}}' {input.mutationfile} | bedtools intersect -a - -b {input.callability} | awk -v OFS="\\t" '{{print $1,$3,$4,$5}}' > {output.filtered_denovo}
-    kmer_counter {params.var_type} {params.sample} -r 4 {input.refgenome} {input.mutationfile} {params.breaktype} > {output.kmercount}
+    kmer_counter {params.var_type} {params.sample} -r 4 {input.refgenome} {output.filtered_denovo} {params.breaktype} > {output.kmercount}
     """
 
 s_pattern = {"A2C": "--super_pattern NNNNANNNN", "A2G": "--super_pattern NNNNANNNN", "A2T": "--super_pattern NNNNANNNN", 
@@ -105,8 +105,8 @@ rule BestKmerPaPa:
         mem_mb=150000 #more memory
     params:
         super_pattern = lambda wc: s_pattern[wc.mutationtype],
-        penalty = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_penalty_and_alpha_best_parameters.txt".format(wc.mutationtype)).read().split()[0]),
-        alpha = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_penalty_and_alpha_best_parameters.txt".format(wc.mutationtype)).read().split()[1])
+        alpha = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_penalty_and_alpha_best_parameters.txt".format(wc.mutationtype)).read().split()[0]),
+        penalty = lambda wc: int(open("../output/KmerPaPa/best_parameters/{}_penalty_and_alpha_best_parameters.txt".format(wc.mutationtype)).read().split()[1])
     conda: "../envs/kmerpapa.yaml"
     output: 
         kmerpapa = "../output/KmerPaPa/best_partition/{mutationtype}_best_papa.txt",

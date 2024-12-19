@@ -16,6 +16,8 @@ chromosomes = config["chromosomes"]
 genome2bit = config["hg382bit"]
 genomebedfile = config["hg38bedfile_strict"]
 annotation_parameters = config["annotation_parameters"]
+evengenomebed = config["evengenomebed"]
+oddgenomebed = config["oddgenomebed"]
 
 bck_kmer= config["bck_kmer"]
 mut_translations = config["mut_translations"]
@@ -30,6 +32,7 @@ include: "rules/haploinsufficiency.smk"
 
 # compare models analysis
 include: "rules/compare_models.smk"
+compare = config["compare"]
 
 include: "rules/expected_synonymous.smk"
 
@@ -60,7 +63,10 @@ rule all:
                 "../output/ObservedExpected/syn/all/synonymous_{logmodel}_observed_expected.tsv"], mutationtype = mutationtypes,logmodel = logmodels, chromosome = chromosomes), #synonymous 
         expand(["../output/ObservedExpected/{logmodel}/{logmodel}_observed_expected_{chromosome}.tsv",
                 "../output/ObservedExpected/all/{logmodel}_observed_expected.tsv"],chromosome = chromosomes, logmodel = logmodels),
-        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv"], mutationtype = mutationtypes, modeltype = models, chromosome = chromosomes)
+        expand([ "../output/EvenOddSplit/{modeltype}_{mutationtype}_summary.tsv",
+                "../output/Compare/Models/{mutationtype}_{compare}_LassoBestModel.RData",
+                "../output/Compare/AnnotatedTestData/{mutationtype}_annotated.txt.gz",
+                "../output/Compare/Predictions/{mutationtype}_{compare}_predictions.tsv"], mutationtype = mutationtypes, modeltype = models,compare = compare)
                 #"../output/CodingSplit/coding_{modeltype}_{mutationtype}_summary.RData",
                 #"../output/CodingSplit/noncoding_{modeltype}_{mutationtype}_summary.RData"], mutationtype = mutationtypes, modeltype = models)
 
